@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
+import com.google.android.material.divider.MaterialDivider;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Card;
 import com.mowtiie.faithfully.data.Chapter;
@@ -71,6 +72,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
 
         holder.tvMessage.setVisibility(View.GONE);
         holder.layoutActions.setVisibility(View.GONE);
+        holder.divider.setVisibility(View.GONE);
 
         holder.cardView.setOnClickListener(v -> {
             boolean expanded = holder.tvMessage.getVisibility() == View.VISIBLE;
@@ -78,8 +80,10 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
 
             if (isAdmin) {
                 holder.layoutActions.setVisibility(expanded ? View.GONE : View.VISIBLE);
+                holder.divider.setVisibility(expanded ? View.GONE : View.VISIBLE);
             } else {
                 holder.layoutActions.setVisibility(View.GONE);
+                holder.divider.setVisibility(View.GONE);
             }
         });
 
@@ -102,6 +106,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
 
     static class CardViewHolder extends RecyclerView.ViewHolder {
         MaterialCardView cardView;
+        MaterialDivider divider;
         TextView tvTitle, tvDate, tvMessage;
         Chip chipChapter;
         View layoutActions;
@@ -110,6 +115,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
         CardViewHolder(@NonNull View itemView) {
             super(itemView);
             cardView = (MaterialCardView) itemView;
+            divider = itemView.findViewById(R.id.chapter_divider);
             tvTitle = itemView.findViewById(R.id.tv_title);
             tvDate = itemView.findViewById(R.id.tv_date);
             tvMessage = itemView.findViewById(R.id.tv_message);
