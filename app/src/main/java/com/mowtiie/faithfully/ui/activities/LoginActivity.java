@@ -15,6 +15,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityLoginBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
+import com.mowtiie.faithfully.helper.NetworkHelper;
 
 import java.util.Objects;
 
@@ -68,8 +69,12 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        setLoading(true);
+        if (NetworkHelper.isOffline(this)) {
+            Toast.makeText(this, "You're currently offline.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        setLoading(true);
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(result -> {
                     setLoading(false);
@@ -79,8 +84,7 @@ public class LoginActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     setLoading(false);
-                    Toast.makeText(this, "Sign in failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Wrong email or password.", Toast.LENGTH_LONG).show();
                 });
     }
 
