@@ -2,7 +2,11 @@ package com.mowtiie.faithfully.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -15,6 +19,8 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -28,6 +34,7 @@ import com.mowtiie.faithfully.databinding.ActivityCardsBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
+import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -221,23 +228,47 @@ public class CardsActivity extends AppCompatActivity implements CardAdapter.OnCa
         if (!isAdmin) return;
         List<Chapter> chapters = dbHelper.getAll();
 
-        String[] labels = new String[chapters.size() + 1];
-        for (int i = 0; i < chapters.size(); i++) {
-            labels[i] = chapters.get(i).getTitle();
-        }
-        labels[chapters.size()] = "❌ Remove from chapter";
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_chapter, null);
 
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Move to chapter")
-                .setItems(labels, (dialog, which) -> {
-                    if (which == chapters.size()) {
-                        updateCardChapter(card, null);
-                    } else {
-                        updateCardChapter(card, chapters.get(which).getId());
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        RecyclerView rvChapters = sheetView.findViewById(R.id.rv_chapters);
+        rvChapters.setLayoutManager(new LinearLayoutManager(this));
+
+        ChapterBottomSheetAdapter adapter = new ChapterBottomSheetAdapter(this, chapters, new ChapterBottomSheetAdapter.OnChapterSelectedListener() {
+            @Override
+            public void onChapterSelected(Chapter chapter) {
+                updateCardChapter(card, chapter.getId());
+                bottomSheetDialog.dismiss();
+            }
+
+            @Override
+            public void onRemoveFromChapterSelected() {
+                updateCardChapter(card, null);
+                bottomSheetDialog.dismiss();
+            }
+        });
+
+        rvChapters.setAdapter(adapter);
+        bottomSheetDialog.setContentView(sheetView);
+
+        BottomSheetBehavior<?> behavior = bottomSheetDialog.getBehavior();
+        behavior.setFitToContents(true);
+
+        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // No action needed during sliding transitions
+            }
+        });
+
+        bottomSheetDialog.show();
     }
 
     private void updateCardChapter(Card card, String newChapterId) {
