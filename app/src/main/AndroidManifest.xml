@@ -17,6 +17,7 @@
         <activity
             android:name=".ui.activities.AddCardActivity"
             android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".ui.activities.CardsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.activities.CardsActivity"

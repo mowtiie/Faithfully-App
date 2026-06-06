@@ -1,10 +1,12 @@
 package com.mowtiie.faithfully.ui.activities;
 
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -64,14 +66,16 @@ public class AddCardActivity extends AppCompatActivity {
             editCardId = extras.getString("card_id");
             editOrder  = extras.getLong("card_order");
 
-            setTitle("Edit Card");
+            binding.toolbar.setTitle("Edit Card");
             binding.etTitle.setText(extras.getString("card_title"));
             binding.etMessage.setText(extras.getString("card_message"));
             binding.etDate.setText(extras.getString("card_date_label"));
             binding.btnSave.setText("Save Changes");
         } else {
             String chapterTitle = extras != null ? extras.getString("chapter_title") : "";
-            setTitle("New Card — " + (chapterTitle != null ? chapterTitle : ""));
+            setTitle("New Card");
+            binding.toolbar.setSubtitle(chapterTitle);
+            binding.toolbar.setSubtitleCentered(true);
         }
 
         binding.etDate.setFocusable(false);
@@ -223,5 +227,13 @@ public class AddCardActivity extends AppCompatActivity {
         binding.etTitle.setEnabled(!loading);
         binding.etMessage.setEnabled(!loading);
         binding.etDate.setEnabled(!loading);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+        }
+        return true;
     }
 }

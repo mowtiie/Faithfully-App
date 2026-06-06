@@ -56,12 +56,11 @@
             android:id="@+id/layout_password"
             android:hint="Password"
             app:endIconMode="password_toggle"
-            app:startIconDrawable="@drawable/ic_lock"
+            app:startIconDrawable="@drawable/ic_key"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="36dp"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:ignore="PrivateResource">
+            android:layout_height="wrap_content">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/input_password"

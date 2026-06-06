@@ -58,12 +58,12 @@ public class AddChapterActivity extends AppCompatActivity {
             editChapterId = extras.getString("chapter_id");
             editChapterOrder = extras.getLong("chapter_order");
 
-            setTitle("Edit Chapter");
+            binding.toolbar.setTitle("Edit Chapter");
             binding.etTitle.setText(extras.getString("chapter_title"));
             binding.etDescription.setText(extras.getString("chapter_description"));
             binding.btnSave.setText("Save Changes");
         } else {
-            setTitle("New Chapter");
+            binding.toolbar.setTitle("New Chapter");
         }
 
         binding.btnSave.setOnClickListener(v -> validateAndSave());
