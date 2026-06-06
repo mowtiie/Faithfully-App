@@ -77,13 +77,12 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
         holder.cardView.setOnClickListener(v -> {
             boolean expanded = holder.tvMessage.getVisibility() == View.VISIBLE;
             holder.tvMessage.setVisibility(expanded ? View.GONE : View.VISIBLE);
+            holder.divider.setVisibility(expanded ? View.GONE : View.VISIBLE);
 
             if (isAdmin) {
                 holder.layoutActions.setVisibility(expanded ? View.GONE : View.VISIBLE);
-                holder.divider.setVisibility(expanded ? View.GONE : View.VISIBLE);
             } else {
                 holder.layoutActions.setVisibility(View.GONE);
-                holder.divider.setVisibility(View.GONE);
             }
         });
 
