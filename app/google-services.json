@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1036385139189",
+    "project_id": "faithfully-ac2cd",
+    "storage_bucket": "faithfully-ac2cd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1036385139189:android:2ce46ae729b10c906e48bc",
+        "android_client_info": {
+          "package_name": "com.mowtiie.faithfully"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_xSQKa5tF5A3hcQXyDUHwFqVV550LHlQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
