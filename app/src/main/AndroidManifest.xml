@@ -16,13 +16,17 @@
         android:theme="@style/Theme.Faithfully">
         <activity
             android:name=".ui.activities.AddCardActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
         <activity
             android:name=".ui.activities.CardsActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.AddChapterActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
         <activity
             android:name=".ui.activities.MainActivity"
