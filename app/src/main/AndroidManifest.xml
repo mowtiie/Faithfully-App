@@ -15,13 +15,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Faithfully">
         <activity
-            android:name=".ui.activities.MainActivity"
-            android:windowSoftInputMode="adjustResize"
+            android:name=".ui.activities.CardsActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.activities.AddChapterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.activities.LoginActivity"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
