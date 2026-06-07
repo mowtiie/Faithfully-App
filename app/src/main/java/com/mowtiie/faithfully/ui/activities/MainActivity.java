@@ -2,6 +2,8 @@ package com.mowtiie.faithfully.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -28,6 +30,7 @@ import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityMainBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.NetworkHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
 
@@ -64,6 +67,8 @@ public class MainActivity extends AppCompatActivity implements ChapterAdapter.On
         db = FirebaseFirestore.getInstance();
         dbHelper = ChapterDbHelper.getInstance(this);
 
+        setSupportActionBar(binding.toolbar);
+
         if (!isAdmin) {
             binding.fabAdd.hide();
         } else {
@@ -97,6 +102,11 @@ public class MainActivity extends AppCompatActivity implements ChapterAdapter.On
     }
 
     private void listenFirestore() {
+        if (NetworkHelper.isOffline(this)) {
+            Toast.makeText(this, "You are currently offline.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         binding.progressBar.setVisibility(View.VISIBLE);
 
         db.collection("chapters")
@@ -144,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements ChapterAdapter.On
             public boolean onMove(@NonNull RecyclerView rv,
                                   @NonNull RecyclerView.ViewHolder src,
                                   @NonNull RecyclerView.ViewHolder tgt) {
-                adapter.moveItem(src.getAdapterPosition(), tgt.getAdapterPosition());
+                adapter.moveItem(src.getAbsoluteAdapterPosition(), tgt.getAbsoluteAdapterPosition());
                 return true;
             }
 
@@ -251,5 +261,50 @@ public class MainActivity extends AppCompatActivity implements ChapterAdapter.On
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error: " + e.getMessage(),
                                 Toast.LENGTH_LONG).show());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int selectedMenuItem = item.getItemId();
+
+        if (selectedMenuItem == R.id.menu_about) {
+            Intent aboutIntent = new Intent(this, AboutActivity.class);
+            startActivity(aboutIntent);
+        }
+
+        if (selectedMenuItem == R.id.menu_settings) {
+            Intent settingsIntent = new Intent(this, SettingsActivity.class);
+            startActivity(settingsIntent);
+        }
+
+        if (selectedMenuItem == R.id.menu_logout) {
+            if (isAdmin) {
+                showLogoutDialog();
+            } else {
+                AuthHelper.setGuestMode(this, false);
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            }
+        }
+        return true;
+    }
+
+    private void showLogoutDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Sign out")
+                .setMessage("Sign out and return to the login screen?")
+                .setPositiveButton("Sign out", (d, w) -> {
+                    AuthHelper.signOutEverything(this);
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }

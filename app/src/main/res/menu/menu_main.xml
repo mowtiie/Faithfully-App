@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="menu_sync"
-        android:title="@string/menu_item_sync" />
+        android:id="@+id/menu_about"
+        app:showAsAction="never"
+        android:title="@string/menu_item_about" />
 
     <item
-        android:id="menu_settings"
+        android:id="@+id/menu_settings"
+        app:showAsAction="never"
         android:title="@string/menu_item_settings" />
 
     <item
-        android:id="menu_logout"
+        android:id="@+id/menu_logout"
+        app:showAsAction="never"
         android:title="@string/menu_item_logout" />
 
 </menu>

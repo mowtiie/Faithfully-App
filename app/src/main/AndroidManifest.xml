@@ -15,20 +15,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Faithfully">
         <activity
-            android:name=".ui.activities.AddCardActivity"
-            android:windowSoftInputMode="adjustResize"
-            android:parentActivityName=".ui.activities.CardsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.activities.CardsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize"
-            android:parentActivityName=".ui.activities.MainActivity" />
-        <activity
-            android:name=".ui.activities.AddChapterActivity"
+            android:name=".ui.activities.AboutActivity"
             android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize"
             android:exported="false" />
+        <activity
+            android:name=".ui.activities.SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.MainActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.AddCardActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.CardsActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.CardsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.MainActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.AddChapterActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.MainActivity"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.MainActivity"
             android:exported="false"
