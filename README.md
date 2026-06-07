@@ -53,7 +53,7 @@ This repo ships with no working credentials. To build and run locally you'd need
 
 | Login | Chapters | Letters |
 |:---:|:---:|:---:|
-| ![Login](metadata/en-US/images/screenshots/login.png) | ![Chapters](metadata/en-US/images/screenshots/chapters.png) | ![Letters](metadata/en-US/images/screenshots/letters.png) |
+| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Chapters](metadata/en-US/images/screenshots/chapters.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) |
 
 ---
 
