@@ -13,6 +13,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SwitchPreferenceCompat;
 
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivitySettingsBinding;
@@ -51,12 +52,15 @@ public class SettingsActivity extends FaithfullyActivity {
         private ListPreference listTheme;
         private ListPreference listContrast;
 
+        private SwitchPreferenceCompat switchDynamicColor;
+
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             setPreferencesFromResource(R.xml.preferences_settings, rootKey);
 
             listTheme = findPreference("list_theme");
             listContrast = findPreference("list_contrast");
+            switchDynamicColor = findPreference("switch_dynamic_color");
 
             if (listTheme != null) {
                 listTheme.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -69,6 +73,13 @@ public class SettingsActivity extends FaithfullyActivity {
             if (listContrast != null) {
                 listContrast.setOnPreferenceChangeListener((preference, newValue) -> {
                     requireActivity().recreate();;
+                    return true;
+                });
+            }
+
+            if (switchDynamicColor != null) {
+                switchDynamicColor.setOnPreferenceChangeListener((preference, newValue) -> {
+                    requireActivity().recreate();
                     return true;
                 });
             }

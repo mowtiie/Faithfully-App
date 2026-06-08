@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
+import com.google.android.material.color.DynamicColors;
 import com.mowtiie.faithfully.R;
 
 public class FaithfullyActivity extends AppCompatActivity {
@@ -27,6 +28,11 @@ public class FaithfullyActivity extends AppCompatActivity {
             default:
                 setTheme(R.style.Theme_Faithfully_HighContrast);
                 break;
+        }
+
+        boolean useDynamicColor = prefs.getBoolean("switch_dynamic_color", false);
+        if (useDynamicColor) {
+            DynamicColors.applyToActivityIfAvailable(this);
         }
 
         super.onCreate(savedInstanceState);
