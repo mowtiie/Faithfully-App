@@ -1,3 +1,21 @@
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <ListPreference
+        app:key="list_theme"
+        app:iconSpaceReserved="false"
+        app:title="@string/prefs_list_theme_title"
+        app:useSimpleSummaryProvider="true"
+        app:entries="@array/theme_entries"
+        app:entryValues="@array/theme_entryValues"
+        app:defaultValue="system_default"/>
+
+    <ListPreference
+        app:key="list_contrast"
+        app:iconSpaceReserved="false"
+        app:title="@string/prefs_list_contrast_title"
+        app:useSimpleSummaryProvider="true"
+        app:entries="@array/contrast_entries"
+        app:entryValues="@array/contrast_entryValues"
+        app:defaultValue="low"/>
 </PreferenceScreen>
