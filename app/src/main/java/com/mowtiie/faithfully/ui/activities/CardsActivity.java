@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,6 +36,7 @@ import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
+import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,10 +95,14 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
         cardList = new ArrayList<>();
         adapter = new CardAdapter(this, cardList, this, isAdmin);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        binding.recyclerView.setAdapter(adapter);
 
         if (isAdmin) {
+            binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
+        } else {
+            NoticeAdapter noticeAdapter = new NoticeAdapter();
+            ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
+            binding.recyclerView.setAdapter(concatAdapter);
         }
 
         loadCards();
