@@ -13,7 +13,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityAboutBinding;
 
-public class AboutActivity extends AppCompatActivity {
+public class AboutActivity extends FaithfullyActivity{
 
     private ActivityAboutBinding binding;
 

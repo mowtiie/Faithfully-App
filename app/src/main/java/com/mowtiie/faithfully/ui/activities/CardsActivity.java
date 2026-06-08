@@ -39,7 +39,7 @@ import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CardsActivity extends AppCompatActivity implements CardAdapter.OnCardActionListener {
+public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnCardActionListener {
 
     private ActivityCardsBinding binding;
     private FirebaseFirestore db;

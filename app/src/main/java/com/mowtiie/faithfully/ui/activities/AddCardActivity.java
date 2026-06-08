@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 
-public class AddCardActivity extends AppCompatActivity {
+public class AddCardActivity extends FaithfullyActivity {
 
     private ActivityAddCardBinding binding;
     private FirebaseFirestore db;

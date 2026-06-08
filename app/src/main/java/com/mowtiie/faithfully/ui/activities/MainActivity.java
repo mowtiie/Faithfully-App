@@ -37,7 +37,7 @@ import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ChapterAdapter.OnChapterActionListener {
+public class MainActivity extends FaithfullyActivity implements ChapterAdapter.OnChapterActionListener {
 
     private ActivityMainBinding binding;
 

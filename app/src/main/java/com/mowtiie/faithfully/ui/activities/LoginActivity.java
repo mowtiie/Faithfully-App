@@ -19,7 +19,7 @@ import com.mowtiie.faithfully.helper.NetworkHelper;
 
 import java.util.Objects;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends FaithfullyActivity {
 
     private ActivityLoginBinding binding;
     private FirebaseAuth mAuth;

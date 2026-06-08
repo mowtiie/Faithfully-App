@@ -17,7 +17,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivitySettingsBinding;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends FaithfullyActivity {
 
     private ActivitySettingsBinding binding;
 

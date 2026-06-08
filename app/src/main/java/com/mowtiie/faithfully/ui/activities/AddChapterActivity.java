@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class AddChapterActivity extends AppCompatActivity {
+public class AddChapterActivity extends FaithfullyActivity {
 
     private ActivityAddChapterBinding binding;
     private FirebaseFirestore db;
