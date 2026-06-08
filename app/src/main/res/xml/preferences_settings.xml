@@ -18,4 +18,11 @@
         app:entries="@array/contrast_entries"
         app:entryValues="@array/contrast_entryValues"
         app:defaultValue="low"/>
+
+    <SwitchPreferenceCompat
+        app:key="switch_dynamic_color"
+        app:iconSpaceReserved="false"
+        app:title="@string/prefs_switch_dynamic_color_title"
+        app:summary="@string/prefs_switch_dynamic_color_summary"
+        app:widgetLayout="@layout/view_preference_switch"/>
 </PreferenceScreen>
