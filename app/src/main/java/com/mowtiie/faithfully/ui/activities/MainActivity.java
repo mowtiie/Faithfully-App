@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -33,6 +34,7 @@ import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.helper.NetworkHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
+import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,10 +83,14 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         chapterList = new ArrayList<>();
         adapter = new ChapterAdapter(chapterList, this, isAdmin);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        binding.recyclerView.setAdapter(adapter);
 
         if (isAdmin) {
+            binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
+        } else {
+            NoticeAdapter noticeAdapter = new NoticeAdapter();
+            ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
+            binding.recyclerView.setAdapter(concatAdapter);
         }
 
         showCached();
