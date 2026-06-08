@@ -49,17 +49,26 @@ public class SettingsActivity extends AppCompatActivity {
     public static class SettingsFragment extends PreferenceFragmentCompat {
 
         private ListPreference listTheme;
+        private ListPreference listContrast;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             setPreferencesFromResource(R.xml.preferences_settings, rootKey);
 
             listTheme = findPreference("list_theme");
+            listContrast = findPreference("list_contrast");
 
             if (listTheme != null) {
                 listTheme.setOnPreferenceChangeListener((preference, newValue) -> {
                     String themeOption = (String) newValue;
                     applyTheme(themeOption);
+                    return true;
+                });
+            }
+
+            if (listContrast != null) {
+                listContrast.setOnPreferenceChangeListener((preference, newValue) -> {
+                    requireActivity().recreate();;
                     return true;
                 });
             }

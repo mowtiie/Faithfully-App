@@ -59,4 +59,12 @@
         <item name="buttonBarNegativeButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog.Flush</item>
     </style>
+    
+    <style name="Theme.Faithfully.MediumContrast" parent="ThemeOverlay.Faithfully.MediumContrast">
+        <item name="alertDialogTheme">@style/Theme.Faithfully.AlertDialog</item>
+    </style>
+
+    <style name="Theme.Faithfully.HighContrast" parent="ThemeOverlay.Faithfully.HighContrast">
+        <item name="alertDialogTheme">@style/Theme.Faithfully.AlertDialog</item>
+    </style>
 </resources>
