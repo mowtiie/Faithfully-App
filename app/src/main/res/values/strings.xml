@@ -2,6 +2,8 @@
     <string name="app_name">Faithfully</string>
     <string name="app_quote">For someone who already knows it\'s hers.</string>
 
+    <string name="notice_guest_mode_chapters">You are currently in read-only mode. Editing and deleting are disabled.</string>
+
     <!-- MENU ITEMS -->
     <string name="menu_item_about">About</string>
     <string name="menu_item_settings">Settings</string>

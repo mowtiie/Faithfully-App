@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:cardUseCompatPadding="true"
+    android:clickable="true"
+    android:focusable="true"
+    style="@style/Widget.Material3.CardView.Filled"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="?attr/colorTertiaryContainer"
+    android:layout_marginHorizontal="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:padding="16dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:src="@drawable/ic_lightbulb"
+            android:scaleType="centerCrop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            app:tint="?attr/colorOnTertiaryContainer" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:text="@string/notice_guest_mode_chapters"
+            android:textColor="?attr/colorOnTertiaryContainer"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
