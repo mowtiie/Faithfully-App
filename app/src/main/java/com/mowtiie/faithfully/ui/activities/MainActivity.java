@@ -289,6 +289,11 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int selectedMenuItem = item.getItemId();
 
+        if (selectedMenuItem == R.id.menu_gallery) {
+            Intent galleryActivity = new Intent(this, GalleryActivity.class);
+            startActivity(galleryActivity);
+        }
+
         if (selectedMenuItem == R.id.menu_about) {
             Intent aboutIntent = new Intent(this, AboutActivity.class);
             startActivity(aboutIntent);
