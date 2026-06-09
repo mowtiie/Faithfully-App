@@ -84,6 +84,16 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         adapter = new ChapterAdapter(chapterList, this, isAdmin);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            if (isAdmin) {
+                showLogoutDialog();
+            } else {
+                AuthHelper.setGuestMode(this, false);
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            }
+        });
+
         if (isAdmin) {
             binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
@@ -289,15 +299,6 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
             startActivity(settingsIntent);
         }
 
-        if (selectedMenuItem == R.id.menu_logout) {
-            if (isAdmin) {
-                showLogoutDialog();
-            } else {
-                AuthHelper.setGuestMode(this, false);
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
-            }
-        }
         return true;
     }
 

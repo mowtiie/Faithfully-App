@@ -19,6 +19,7 @@
             app:titleTextColor="?attr/colorOnSurface"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_logout"
             app:menu="@menu/menu_main"/>
     </com.google.android.material.appbar.AppBarLayout>
 
