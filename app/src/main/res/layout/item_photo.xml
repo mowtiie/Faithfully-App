@@ -3,7 +3,6 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     app:cardUseCompatPadding="true"
-    android:layout_marginHorizontal="16dp"
     style="@style/Widget.Material3.CardView.Outlined"
     app:cardBackgroundColor="?attr/colorSurface"
     app:cardElevation="0dp"
