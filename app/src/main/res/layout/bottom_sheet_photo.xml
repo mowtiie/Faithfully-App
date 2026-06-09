@@ -19,7 +19,7 @@
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Move to chapter"
+            android:text="Photo Actions"
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:textStyle="bold"
             android:fontFamily="serif"

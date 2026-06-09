@@ -5,10 +5,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textview.MaterialTextView;
 import com.mowtiie.faithfully.R;
@@ -81,12 +84,41 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     }
 
     private void showActionMenu(Photo photo) {
-        new androidx.appcompat.app.AlertDialog.Builder(context)
-                .setItems(new String[]{ "Edit caption", "Delete" }, (d, which) -> {
-                    if (which == 0) listener.onEditCaption(photo);
-                    else            listener.onDelete(photo);
-                })
-                .show();
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
+        View sheetView = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_photo, null);
+
+        LinearLayout actionEditCaption = sheetView.findViewById(R.id.photo_action_edit_caption);
+        LinearLayout actionDeletePhoto = sheetView.findViewById(R.id.photo_action_delete);
+
+        actionEditCaption.setOnClickListener(v -> {
+            listener.onEditCaption(photo);
+            bottomSheetDialog.dismiss();
+        });
+
+        actionDeletePhoto.setOnClickListener(v -> {
+            listener.onDelete(photo);
+            bottomSheetDialog.dismiss();
+        });
+
+        bottomSheetDialog.setContentView(sheetView);
+
+        BottomSheetBehavior<?> bottomSheetBehavior = bottomSheetDialog.getBehavior();
+        bottomSheetBehavior.setFitToContents(true);
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@androidx.annotation.NonNull View view, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            }
+
+            @Override
+            public void onSlide(@androidx.annotation.NonNull View view, float v) {
+                // No action needed during sliding transitions
+            }
+        });
+
+        bottomSheetDialog.show();
     }
 
     public void moveItem(int from, int to) {
