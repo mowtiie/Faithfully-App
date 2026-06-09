@@ -1,5 +1,6 @@
 package com.mowtiie.faithfully.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
@@ -10,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -20,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -35,6 +38,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.OnPhotoActionListener {
 
@@ -190,23 +194,27 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
             return;
         }
 
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setText(photo.getCaption());
-        input.setSelection(input.getText().length());
+        View editCaptionView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_caption, null);
+        TextInputEditText inputCaption = editCaptionView.findViewById(R.id.input_caption);
+        inputCaption.setText(photo.getCaption());
+        inputCaption.setSelection(photo.getCaption().length());
 
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Edit caption")
-                .setView(input)
-                .setPositiveButton("Save", (d, w) -> {
-                    String newCaption = input.getText().toString().trim();
-                    db.collection("gallery").document(photo.getId())
-                            .update("caption", newCaption.isEmpty() ? null : newCaption)
-                            .addOnSuccessListener(unused -> Toast.makeText(this, "Caption updated", Toast.LENGTH_SHORT).show())
-                            .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
-                })
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle("Edit Caption")
+                .setView(editCaptionView)
                 .setNegativeButton("Cancel", null)
-                .show();
+                .setPositiveButton("Save", null);
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.setOnShowListener(dialog -> alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String newCaption = Objects.requireNonNull(inputCaption.getText()).toString().trim();
+            db.collection("gallery").document(photo.getId())
+                    .update("caption", newCaption.isEmpty() ? null : newCaption)
+                    .addOnSuccessListener(unused -> Toast.makeText(GalleryActivity.this, "Caption updated", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(GalleryActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            alertDialog.dismiss();
+        }));
+        alertDialog.show();
     }
 
     @Override
