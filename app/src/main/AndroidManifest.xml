@@ -16,9 +16,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Faithfully">
         <activity
-            android:name=".ui.activities.GalleryActivity"
-            android:parentActivityName=".ui.activities.MainActivity"
+            android:name=".ui.activities.PhotoViewerActivity"
+            android:parentActivityName=".ui.activities.GalleryActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.activities.AddPhotoActivity"
+            android:parentActivityName=".ui.activities.GalleryActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.GalleryActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.AboutActivity"
             android:exported="false"
