@@ -1,6 +1,14 @@
 <resources>
     <string name="app_name">Faithfully</string>
     <string name="app_quote">For someone who already knows it\'s hers.</string>
+    <string name="app_easter_egg">Made with love and coffee.</string>
+    <string name="app_license">MIT License</string>
+    <string name="app_author">mowtiie</string>
+
+    <string name="link_web">https://alliyannah.love</string>
+    <string name="link_web_source_code">https://github.com/mowtiie/Faithfully-Web</string>
+    <string name="link_app_source_code">https://github.com/mowtiie/Faithfully-App</string>
+    <string name="link_app_author">https://github.com/mowtiie</string>
 
     <string name="notice_guest_mode_chapters">You are currently in read-only mode. Editing and deleting are disabled.</string>
 
@@ -15,4 +23,15 @@
     <string name="prefs_list_contrast_title">Contrast</string>
     <string name="prefs_switch_dynamic_color_title">Dynamic color</string>
     <string name="prefs_switch_dynamic_color_summary">Apply colors from your wallpaper to the application theme</string>
+
+    <!-- ABOUT PREFERENCES -->
+    <string name="preference_app_version">Version</string>
+    <string name="preference_app_license">License</string>
+    <string name="preference_app_source_code_title">App Source Code</string>
+    <string name="preference_app_source_code_summary">Check the Github repository and the README</string>
+    <string name="preference_web_source_code_title">Web Source Code</string>
+    <string name="preference_web_source_code_summary">Check the Github repository and the README for the website frontend companion</string>
+    <string name="preference_web_frontend_companion_title">Faithfully Web</string>
+    <string name="preference_web_frontend_companion_summary">Check out the website frontend companion for the Faithfully app</string>
+    <string name="preference_app_author">Author</string>
 </resources>
