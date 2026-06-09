@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/menu_gallery"
+        android:title="@string/menu_item_gallery"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/menu_about"
         app:showAsAction="never"
         android:title="@string/menu_item_about" />
