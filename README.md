@@ -6,7 +6,7 @@
 
 A small Java + XML admin app that lets me write, organize, and reorder chapters of letters that appear in real time on a public website I built for her.
 
-**[🌐 Website repo](https://github.com/mowtiie/Faithfully-Web)** · **[📱 This repo](https://github.com/mowtiie/Faithfully-App)**
+**[🌐 Website repo](https://github.com/mowtiie/Faithfully-Web)**
 
 </div>
 
