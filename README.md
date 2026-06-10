@@ -61,9 +61,9 @@ A small "👀 Read-only mode" banner appears at the top of the home screen when 
 
 ## 📸 Screenshots
 
-| Login | Home | Chapters | Gallery |
+| Login | Home | Letters | Dark Mode |
 |:---:|:---:|:---:|:---:|
-| ![Login](screenshots/login.png) | ![Home](screenshots/home.png) | ![Chapters](screenshots/chapters.png) | ![Gallery](screenshots/gallery.png) |
+| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Chapters](metadata/en-US/images/screenshots/letters.jpg) | ![Gallery](metadata/en-US/images/screenshots/dark-mode.jpg) |
 
 ---
 
