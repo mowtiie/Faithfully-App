@@ -122,7 +122,7 @@ Certificate fingerprints:
 ## 📁 Project structure
 
 ```
-app/src/main/java/com/example/alicards/
+app/src/main/java/com/mowtiie/faithfully/
 ├── LoginActivity.java         # entry screen — sign in or continue as guest
 ├── MainActivity.java          # landing screen with nav cards
 │
