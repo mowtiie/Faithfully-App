@@ -282,6 +282,9 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        boolean isAdmin = AuthHelper.isAdmin();
+        menu.findItem(R.id.menu_backup).setVisible(isAdmin);
         return true;
     }
 

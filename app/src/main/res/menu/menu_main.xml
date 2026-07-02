@@ -17,4 +17,9 @@
         app:showAsAction="never"
         android:title="@string/menu_item_settings" />
 
+    <item
+        android:id="@+id/menu_backup"
+        app:showAsAction="never"
+        android:title="@string/menu_item_backup"/>
+
 </menu>
