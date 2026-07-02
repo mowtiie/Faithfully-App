@@ -1,4 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="@string/preference_backup_category_import_export"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            android:key="export"
+            android:title="@string/preference_backup_export"
+            android:summary="@string/preference_backup_export_summary"/>
+
+        <Preference
+            app:iconSpaceReserved="false"
+            android:title="@string/preference_backup_restore"
+            android:summary="@string/preference_backup_restore_summary"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/preference_backup_category_danger_zone"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            android:title="@string/preference_backup_clear_all_data"
+            android:summary="@string/preference_backup_clear_all_data_summary"/>
+    </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

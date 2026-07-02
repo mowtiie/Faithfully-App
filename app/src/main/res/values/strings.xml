@@ -35,4 +35,14 @@
     <string name="preference_web_frontend_companion_title">Faithfully Web</string>
     <string name="preference_web_frontend_companion_summary">Check out the website frontend companion for the Faithfully app</string>
     <string name="preference_app_author">Author</string>
+    
+    <!-- BACKUP PREFERENCES -->
+    <string name="preference_backup_category_import_export">Import &amp; Export</string>
+    <string name="preference_backup_export">Export</string>
+    <string name="preference_backup_export_summary">Save all chapters, letters, and gallery photos to a single .zip archive.</string>
+    <string name="preference_backup_restore">Restore</string>
+    <string name="preference_backup_restore_summary">Load a previous backup (.zip or legacy .json). This will overwrite current data.</string>
+    <string name="preference_backup_category_danger_zone">Danger Zone</string>
+    <string name="preference_backup_clear_all_data">Clear all data</string>
+    <string name="preference_backup_clear_all_data_summary">Permanently delete all chapters, letters, and gallery photos (including image files). There\'s no undo — export a backup first.</string>
 </resources>
