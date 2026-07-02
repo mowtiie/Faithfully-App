@@ -307,6 +307,11 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
             startActivity(settingsIntent);
         }
 
+        if (selectedMenuItem == R.id.menu_backup) {
+            Intent backupIntent = new Intent(this, BackupActivity.class);
+            startActivity(backupIntent);
+        }
+
         return true;
     }
 
