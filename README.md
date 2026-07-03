@@ -67,6 +67,42 @@ A small "👀 Read-only mode" banner appears at the top of the home screen when 
 
 ---
 
+## ✅ Verification
+
+APK releases on GitHub are signed using my key. They can
+be verified using
+[apksigner](https://developer.android.com/studio/command-line/apksigner.html#options-verify):
+
+```
+apksigner verify --print-certs --verbose faithfully.apk
+```
+
+The output should look like:
+
+```
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+```
+
+The certificate fingerprints should correspond to the ones listed below:
+
+```
+Owner: CN=Mowtiie
+Issuer: CN=Mowtiie
+Serial number: 8a256fdcdde50069
+Valid from: Wed Jun 10 22:57:23 PST 2026 until: Sun Oct 26 22:57:23 PST 2053
+Certificate fingerprints:
+         SHA1: 56:4E:2C:DB:E4:06:C9:EC:15:E6:BC:D9:0A:88:38:72:8B:FB:13:20
+         SHA256: 8B:67:51:F3:C3:31:85:63:5F:98:95:30:B6:C0:73:A1:39:7B:3D:41:2B:EF:AE:69:06:A2:EB:58:45:D2:DE:63
+```
+
+---
+
 ## 🛠️ Tech stack
 
 | Layer | What I used |
@@ -86,7 +122,7 @@ A small "👀 Read-only mode" banner appears at the top of the home screen when 
 ## 📁 Project structure
 
 ```
-app/src/main/java/com/example/alicards/
+app/src/main/java/com/mowtiie/faithfully/
 ├── LoginActivity.java         # entry screen — sign in or continue as guest
 ├── MainActivity.java          # landing screen with nav cards
 │
