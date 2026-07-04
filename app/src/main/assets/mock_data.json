@@ -1,0 +1,80 @@
+{
+  "_note": "Same content as the website's MOCK_CHAPTERS/MOCK_CARDS/MOCK_GALLERY in script.js. Edit this file to update guest-mode content across the Android app.",
+
+  "chapters": [
+    {
+      "id": "mock-ch-1",
+      "title": "How it started",
+      "description": "The very first pages of us — sample chapter.",
+      "order": 0
+    },
+    {
+      "id": "mock-ch-2",
+      "title": "Little everyday things",
+      "description": "Notes about the small moments — sample chapter.",
+      "order": 1
+    },
+    {
+      "id": "mock-ch-3",
+      "title": "For the quiet days",
+      "description": "Words to come back to — sample chapter.",
+      "order": 2
+    }
+  ],
+
+  "cards": [
+    {
+      "id": "mock-c-1", "chapterId": "mock-ch-1", "order": 0,
+      "title": "A sample first letter",
+      "dateLabel": "Sample",
+      "message": "This is what a real letter looks like on this site — but the actual words in here are only visible to the person these letters were written for. Sign in to see the real ones. 🌻"
+    },
+    {
+      "id": "mock-c-2", "chapterId": "mock-ch-1", "order": 1,
+      "title": "Just an example",
+      "dateLabel": "Sample",
+      "message": "Each card expands when you tap it, so you can read the message inside. This one is a placeholder so demo visitors can see the layout. 🩵"
+    },
+    {
+      "id": "mock-c-3", "chapterId": "mock-ch-2", "order": 0,
+      "title": "Sample about coffee mornings",
+      "dateLabel": "Sample",
+      "message": "A real letter might tell a small story, share an inside joke, or say something that only makes sense to the two people it lives between. This is not that letter — this is just a placeholder. 🌻"
+    },
+    {
+      "id": "mock-c-4", "chapterId": "mock-ch-2", "order": 1,
+      "title": "Sample about rainy days",
+      "dateLabel": "Sample",
+      "message": "The chapters help group letters into moods and moments. This one belongs to the 'everyday things' chapter. Nothing to see here — just a demo. 🩷"
+    },
+    {
+      "id": "mock-c-5", "chapterId": "mock-ch-3", "order": 0,
+      "title": "A sample for the quiet days",
+      "dateLabel": "Sample",
+      "message": "Not every letter is meant to be exciting — some are just gentle reminders that someone is thinking of you. This is a placeholder version of one of those. 🌻"
+    }
+  ],
+
+  "gallery": [
+    {
+      "id": "mock-g-1", "order": 0, "caption": "Sample photo 🐱",
+      "imageUrl":     "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=1200",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400"
+    },
+    {
+      "id": "mock-g-2", "order": 1, "caption": "Another sample 🐱",
+      "imageUrl":     "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=1200",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=400"
+    },
+    {
+      "id": "mock-g-3", "order": 2, "caption": "One more sample 🐱",
+      "imageUrl":     "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?w=1200",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?w=400"
+    },
+    {
+      "id": "mock-g-4", "order": 3, "caption": "Sample photo 🐱",
+      "imageUrl":     "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=1200",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=400"
+    }
+  ]
+}
