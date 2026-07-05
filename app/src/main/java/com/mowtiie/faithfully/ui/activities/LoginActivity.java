@@ -77,8 +77,16 @@ public class LoginActivity extends FaithfullyActivity {
         setLoading(true);
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(result -> {
+                    if (!AuthHelper.canReadRealData()) {
+                        mAuth.signOut();
+                        setLoading(false);
+                        Toast.makeText(this, "That account isn't authorized to view this app.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
                     setLoading(false);
                     AuthHelper.setGuestMode(this, false);
+
                     Toast.makeText(this, "Welcome back, Mowtiie.", Toast.LENGTH_SHORT).show();
                     goToMain();
                 })
