@@ -8,8 +8,8 @@ import com.google.firebase.auth.FirebaseUser;
 
 public class AuthHelper {
 
-    public static final String ADMIN_UID = "1V2A4PEmBZXqSe6fHZkpIg1go2g1";
-    public static final String ALI_UID   = "06aw3OBmoMaH6gYVcN59VHy1JDF3";
+    public static final String ADMIN_UID = "371O09ErYFShTBzNDdInf40FUE23";
+    public static final String ALI_UID   = "h0yjVpgq6pbreAD3aZvQOcaOp4F3";
 
     private static final String PREFS_NAME = "auth_prefs";
     private static final String KEY_GUEST_MODE = "guest_mode_chosen";
