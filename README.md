@@ -2,11 +2,11 @@
 
 # 🌻 Faithfully App
 
-### *The Android app I built to manage letters and photos on her website.*
+### *The Android app I built to manage her letters, memories, and photos.*
 
-A small Java + XML admin app that lets me write letters, organize them into chapters, and upload cat photos — all syncing in real time to a public website I built for her.
+A small Java + XML app that lets me write letters, organize them into chapters, and upload cat photos — all syncing in real time to a public website I built for her. Fully private for the two of us, with a friendly demo mode for everyone else.
 
-**[🌐 Website repo](https://github.com/mowtiie/Faithfully-App)** · **[🌐 Live Site](https://alliyannah.love)**
+**[🌐 Website repo](https://github.com/mowtiie/Faithfully-Web)** · **[🌐 Live site](https://alliyannah.love)**
 
 </div>
 
@@ -22,48 +22,53 @@ I picked Java and XML views instead of Kotlin and Compose on purpose — it's th
 
 ## ✨ Features
 
-### Letters
-- 📖 **Chapters** — add, edit, delete, and reorder chapters that group letters into eras of our story
-- 💌 **Letters** — write new ones with a built-in date picker, assign them to a chapter, edit or delete later
-- 🔀 **Drag-to-reorder** — long-press any chapter or card to drag it into a new position
-- 🏷️ **Reassign chapters** — move a letter to a different chapter, or unassign it entirely
+### 🏠 Home
+- 🎂 Live countdown that ticks down to the second
+- 💛 Days-together counter that counts up from the day we began
+- 🌻 Title, subtitle, and labels all come from the same `settings/home` document the website reads, so the two always agree
+- 🌙 Light and dark mode, three contrast levels, and optional dynamic color
 
-### Gallery
-- 🐱 **Photo upload** — pick a cat photo with the system photo picker
-- 🪶 **Automatic compression** — full photo resized to 1920px + thumbnail at 400px, JPEG-compressed to ~10x smaller
-- 🔃 **Auto-rotation** — EXIF orientation read so portrait photos don't end up sideways
-- 📝 **Captions** — optional, editable later via long-press menu
-- 🗑️ **Cascade delete** — deleting a photo removes both the full-res and thumbnail from Firebase Storage
+### 💌 Letters
+- 📖 Chapters that group letters into eras of our story — add, edit, delete, and reorder
+- 💌 Letters written with a built-in date picker, assigned to a chapter, and editable later
+- 🔀 Long-press any chapter or letter to drag it into a new position
+- 🏷️ Move a letter to a different chapter, or unassign it entirely
 
-### Auth & permissions
-- 🔒 **Admin and guest modes** — sign in to manage everything, or continue as a guest to just browse
-- 🛡️ **UID-restricted writes** — Firestore rules reject any write attempt that doesn't come from my specific admin user UID
+### 🐱 Gallery
+- 🖼 Photo upload with the system photo picker — no storage permission needed
+- 🪶 Automatic compression — full photo resized to 1920px plus a 400px thumbnail, JPEG-compressed to roughly 10x smaller
+- 🔃 EXIF orientation is read so portrait photos don't end up sideways
+- 📝 Optional captions, editable later from the long-press menu
+- ☁️ Photos live on Cloudflare R2, the same place the website serves them from — old Firebase Storage photos still show up
+- 🗑️ Deleting a photo removes both the full-size image and its thumbnail
 
-### Polish
-- 💾 **Offline-friendly chapters** — cached in SQLite so the chapters list opens instantly without waiting for the network
-- 🎨 **Material 3 styling** — dragged cards lift with a soft color shift using `colorPrimaryContainer` from the theme
-- 🔄 **Atomic batch reorders** — all `order` field updates go through a Firestore batch write so partial-update edge cases are impossible
+### 💾 Backup & Restore
+- 📦 Export everything — chapters, letters, photos, apps, and home settings — to a single `.zip`
+- ♻️ Restore from a backup — it uses the same zip format as the website's backup
+- 🧹 Clear all data behind a type-DELETE-to-confirm step
+- 🔒 Admin only
 
----
+### 🔐 Auth & Demo mode
+- 🔑 Email/password sign-in; only the two allow-listed accounts unlock the real content
+- 👑 **Admin** (me) — add, edit, delete, reorder, upload, and back up
+- 🩷 **Reader** (her) — sees everything for real, but read-only, with a soft banner saying so
+- 👀 **Guest** (everyone else) — a demo mode with placeholder chapters, sample letters, and free stock cat photos, so visitors can see the layout without seeing anything personal. It never touches Firebase
+- 🛡️ Every write is checked twice: the UI hides the buttons, and the code refuses to write unless you're the admin
 
-## 🔐 Admin vs Guest mode
-
-The app has two modes:
-
-| Mode | What they can do |
-|---|---|
-| **Admin** (me, signed in with a Firebase Auth account) | Add, edit, delete, reorder chapters, letters, and photos |
-| **Guest** (anyone, no login needed) | Browse chapters, expand letters, view the gallery — **no write access** |
-
-A small "👀 Read-only mode" banner appears at the top of the home screen when in guest mode. All FABs, edit buttons, delete buttons, drag handles, and upload screens are hidden for guests. Even if someone tried to bypass the UI checks, Firestore and Storage security rules reject any write attempt that doesn't come from my admin user UID.
+### 🧰 Under the hood
+- ⚡ Real-time updates through Firestore listeners that detach with their screen
+- 💾 Chapters are cached in SQLite so the list opens instantly, and the cache is cleared on sign-out so nothing leaks to the next person
+- 🔄 Atomic batch writes for every reorder — no half-updated lists
+- 🎨 Material 3 styling with theme-aware colors, so dragged cards lift with a soft color shift
+- 🔒 Two-layer security — client-side role checks plus Firestore and Worker rules that require the admin UID
 
 ---
 
 ## 📸 Screenshots
 
-| Login | Home | Letters | Dark Mode |
+| Login | Home | Letters | Dark mode |
 |:---:|:---:|:---:|:---:|
-| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Chapters](metadata/en-US/images/screenshots/letters.jpg) | ![Gallery](metadata/en-US/images/screenshots/dark-mode.jpg) |
+| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
 
 ---
 
@@ -108,14 +113,49 @@ Certificate fingerprints:
 | Layer | What I used |
 |---|---|
 | **Language** | Java |
-| **UI** | XML views (no Compose) with Material Components |
-| **Database** | [Firebase Firestore](https://firebase.google.com/docs/firestore) |
-| **File storage** | [Firebase Storage](https://firebase.google.com/docs/storage) |
-| **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth) (email/password + persistent guest flag) |
+| **UI** | XML views (no Compose) with Material 3 components |
+| **Database** | [Firebase Firestore](https://firebase.google.com/docs/firestore) (real-time NoSQL) |
+| **Photo storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) behind a small upload Worker — the same one the website uses |
+| **Legacy storage** | [Firebase Storage](https://firebase.google.com/docs/storage), only for photos uploaded before the move |
+| **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth) — email/password, UID-restricted writes. The same ID token authorizes uploads to the Worker |
 | **Local cache** | Android SQLite via `SQLiteOpenHelper` |
-| **Image loading** | [Glide](https://github.com/bumptech/glide) for async grid loading |
-| **Image processing** | Built-in Android `Bitmap` + `ExifInterface` (resize, rotate, JPEG-encode) |
+| **Image loading** | [Glide](https://github.com/bumptech/glide) |
+| **Image processing** | Built-in `Bitmap` + AndroidX `ExifInterface` (resize, rotate, JPEG-encode) |
 | **Min SDK** | 24 (Android 7.0+) |
+| **Companion** | [Faithfully Web](https://github.com/mowtiie/Faithfully-Web) — the public website |
+
+---
+
+## 🏗️ Architecture
+
+```
+      ┌──────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+      │  Admin           │         │  Reader         │         │  Everyone else  │
+      │  (signed in)     │         │  (signed in)    │         │  (demo mode)    │
+      └────────┬─────────┘         └────────┬────────┘         └────────┬────────┘
+               │ reads + writes             │ reads                     │ reads
+               │ (UID-restricted)           │ (UID-restricted)          │ sample content
+               │                            │                           │ from mock_data.json
+               └───────────┬────────────────┘                           │
+                           ▼                                            ▼
+             ┌────────────────────────────────┐             (no Firebase call)
+             │  Firebase                      │
+             │   • Firestore                  │
+             │     - chapters/                │
+             │     - cards/                   │
+             │     - gallery/                 │
+             │     - settings/home            │
+             │   • Auth                       │
+             │     - allow-listed UIDs only   │
+             └────────────────────────────────┘
+
+             ┌────────────────────────────────┐
+  Admin ───► │  Upload Worker  (admin token)  │ ───► Cloudflare R2
+  uploads    └────────────────────────────────┘       - gallery/*.jpg
+  deletes                                             - gallery/thumbs/*.jpg
+```
+
+The admin account is the only one that can write. Firestore rules check the user's UID on every write, and the upload Worker only accepts the admin's Firebase ID token, so even though other people can sign in, they cannot change anything. The website reads the same Firestore documents and loads the same R2 photos.
 
 ---
 
@@ -123,90 +163,72 @@ Certificate fingerprints:
 
 ```
 app/src/main/java/com/mowtiie/faithfully/
-├── LoginActivity.java         # entry screen — sign in or continue as guest
-├── MainActivity.java          # landing screen with nav cards
+├── FaithfullyApp.java             # applies the saved theme at startup
 │
-│  --- Letters ---
-├── ChaptersActivity.java      # list, reorder, delete chapters
-├── AddChapterActivity.java    # add or edit a chapter
-├── CardsActivity.java         # list cards inside a chapter
-├── AddCardActivity.java       # add or edit a card
-├── ChapterAdapter.java
-├── CardAdapter.java
-├── Chapter.java
-├── Card.java
-├── ChapterDbHelper.java       # SQLite cache for chapters
+├── ui/activities/
+│   ├── LoginActivity              # sign in or continue as guest
+│   ├── HomeActivity               # title, countdown, and days-together counter
+│   ├── MainActivity               # chapters list
+│   ├── CardsActivity              # letters inside a chapter
+│   ├── AddChapterActivity         # add or edit a chapter
+│   ├── AddCardActivity            # add or edit a letter
+│   ├── GalleryActivity            # photo grid + admin actions
+│   ├── AddPhotoActivity           # picker + compress + upload
+│   ├── PhotoViewerActivity        # full-screen photo
+│   ├── BackupActivity             # export, restore, clear all
+│   ├── SettingsActivity / AboutActivity
+│   └── FaithfullyActivity         # base class: contrast + dynamic color
 │
-│  --- Gallery ---
-├── GalleryActivity.java       # photo grid + admin actions
-├── AddPhotoActivity.java      # picker + compress + upload
-├── PhotoViewerActivity.java   # full-screen photo viewer
-├── PhotoAdapter.java
-├── Photo.java
-├── ImageUtils.java            # resize, rotate, JPEG-encode
+├── ui/adapters/                   # Chapter, Card, Photo, and notice-banner adapters
+├── data/                          # Chapter, Card, Photo models
 │
-└── AuthHelper.java            # admin/guest mode detection
+├── helper/
+│   ├── AuthHelper                 # admin / reader / guest detection
+│   ├── PhotoStorageHelper         # R2 upload Worker client
+│   ├── HomeContentResolver        # sample text vs settings/home, countdown math
+│   ├── MockDataLoader             # demo content from assets/mock_data.json
+│   ├── ChapterDbHelper            # SQLite cache for chapters
+│   └── NetworkHelper
+│
+└── util/ImageUtil                 # resize, rotate, JPEG-encode
 ```
-
----
-
-## 🏗️ How it fits together
-
-```
-   ┌──────────────────┐         ┌─────────────────┐
-   │  This app        │         │  Public website │
-   │  (admin only)    │         │  (read-only)    │
-   └────────┬─────────┘         └────────┬────────┘
-            │ writes                     │ reads
-            │ (UID-restricted)           │
-            └───────────┬────────────────┘
-                        ▼
-          ┌────────────────────────────────┐
-          │  Firebase                       │
-          │   • Firestore                  │
-          │     - chapters/                │
-          │     - cards/                   │
-          │     - gallery/                 │
-          │   • Storage                    │
-          │     - gallery/*.jpg            │
-          └────────────────────────────────┘
-```
-
-Firestore + Storage security rules check the user's UID on every write. Only the admin account can modify data — so even though guests can sign in to Firebase Auth, they cannot write anything.
 
 ---
 
 ## 📤 Upload pipeline (gallery)
 
-When you tap the upload FAB:
+When you tap the upload button:
 
-1. **System photo picker** opens (no permissions required on Android 13+)
+1. **System photo picker** opens (no permissions required)
 2. **On a background thread**, the chosen image is:
-   - decoded with `inSampleSize` to avoid OOM on huge photos
+   - decoded with `inSampleSize` to avoid running out of memory on huge photos
    - rotated based on EXIF orientation
    - resized to **1920px wide** (full-res) and **400px wide** (thumbnail)
    - JPEG-compressed (quality 85 / 80)
-3. **Two parallel uploads** to Firebase Storage (`gallery/{timestamp}.jpg` and `_thumb.jpg`)
-4. **Firestore document** created with both download URLs, optional caption, and auto-incremented `order`
-5. Website's real-time listener picks it up → photo appears in the gallery within ~1 second
+3. **Two uploads** go to the Worker with my Firebase ID token — `gallery/<time>_<id>.jpg`, then `gallery/thumbs/<time>_<id>.jpg`. If the thumbnail fails, the full image is removed again
+4. **Firestore document** created with both public URLs, the two storage keys, an optional caption, and an auto-incremented `order`. If this step fails, the uploaded files are deleted
+5. The website's real-time listener picks it up → the photo appears in the gallery within about a second
 
 A typical 5MB phone photo becomes ~350KB total uploaded.
 
 ---
 
-## 🔧 Setup
+## 🔧 Running it yourself
 
 If you want to fork it and run your own version:
 
-1. Clone the repo and open in Android Studio
+1. Clone the repo and open it in Android Studio
 2. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-3. Enable Firestore, Authentication (Email/Password), and Storage
+3. Enable Firestore and Authentication (Email/Password)
 4. Create your admin user under **Authentication → Users**
-5. Copy your admin user's UID and paste it into `AuthHelper.java` (and the Firestore + Storage rules)
+5. Put your admin's UID (and the reader's, if you have one) in `AuthHelper.java`, and write matching Firestore security rules
 6. Drop your `google-services.json` from Firebase into the `app/` folder
-7. Run on a device or emulator
+7. Set up an R2 bucket and an upload Worker that only accepts your admin's Firebase ID token, then point `UPLOAD_WORKER_URL` and `PHOTO_BASE_URL` in `PhotoStorageHelper.java` at them
+8. Run on a device or emulator
 
-The first launch shows the login screen — sign in with your admin credentials. After that, Firebase persists the session and the app skips the login screen on future launches. You can sign out anytime from the toolbar menu.
+Release builds read their signing details from a git-ignored `keystore.properties`; without it they build unsigned, which is handy for CI.
+
+Without signing in, you'll still see the app — just guest mode with the placeholder content from `app/src/main/assets/mock_data.json`. The first launch shows the login screen; after you sign in, Firebase keeps the session and the app skips straight to Home.
 
 ---
 
@@ -216,8 +238,9 @@ The first launch shows the login screen — sign in with your admin credentials.
 - Building drag-and-drop reorder with `ItemTouchHelper` and committing the result as a Firestore batch write so it's atomic
 - That offline-first UI feels noticeably better — chapters appear from cache instantly while Firestore catches up
 - Material 3's color system (`MaterialColors.getColor()`) makes themed drag states elegant in just a few lines
-- How to design a clean dual-mode auth flow (admin + guest) where the UI and the backend rules both enforce permissions
+- How to design a clean three-role auth flow (admin, reader, guest) where the UI and the backend rules both enforce permissions
 - How to do image processing right — EXIF rotation, `inSampleSize`, JPEG quality tradeoffs, dual-size uploads for thumbnails
+- That a shared storage layer is worth it — letting a small Worker check the same Firebase ID token meant no secrets in the app
 
 ---
 
