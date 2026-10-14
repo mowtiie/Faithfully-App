@@ -12,7 +12,7 @@ An Android app for managing content on the Faithfully-Web sister project. Java +
 
 `AuthHelper.currentRole()` returns one of three values, defined in `AuthHelper.Role` enum:
 
-- **`ADMIN`** — signed in as the admin UID (owner). Full CRUD. Sees FAB, edit menus, drag-to-reorder, Backup menu item.
+- **`ADMIN`** — signed in as the admin UID (owner). Full CRUD. Sees FAB, edit menus, drag-to-reorder, and the Backup & Restore section in Settings.
 - **`READER`** — signed in as Ali's UID. Reads real Firestore data. **No writes.** No FAB. No edit affordances. Shows a "🩷 Signed in — read-only" banner via `NoticeAdapter`.
 - **`GUEST`** — everyone else (not signed in, or signed in as a non-allowlisted UID). Sees mock data loaded from `assets/mock_data.json` by `MockDataLoader`. No writes. Shows a "👀 Demo mode — showing sample content" banner.
 
@@ -43,8 +43,7 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 | `GalleryActivity` | Photo grid + lightbox trigger | Branches by role |
 | `AddChapterActivity` / `AddCardActivity` / `AddPhotoActivity` | CRUD screens | Admin only (implicit — non-admins can't get here) |
 | `PhotoViewerActivity` | Full-screen photo view | All roles |
-| `BackupActivity` | Zip-based backup/restore/clear-all | Admin only (checked in onCreate) |
-| `SettingsActivity` | App preferences | Any role |
+| `SettingsActivity` | App preferences, plus Backup & Restore and Clear all (admin only, hidden for others) | Any role; backup section ADMIN only |
 | `AboutActivity` | App info | Any role |
 
 ## Key architectural patterns
@@ -54,10 +53,11 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 - **`FaithfullyActivity` base class** for every activity — it applies the user's contrast and dynamic-colour settings. New activities must extend it, not `AppCompatActivity`.
 - **Auto Backup** excludes the chapter cache database (`backup_rules.xml`, `data_extraction_rules.xml`). Keep private content out of it.
 - **Firestore listeners** in activities use `addSnapshotListener(this, ...)` so they detach with the activity (Home registers/removes its own in `onStart`/`onStop`).
+- **Read Firestore fields with `DocFields`**, not `getTimestamp`/`getString`/`getLong` — the typed getters throw if a field holds another type (e.g. a date saved as milliseconds), which crashes the whole list.
 - **`ConcatAdapter` + `NoticeAdapter`** — used to prepend a read-only banner to lists in READER and GUEST modes. Adapter is instantiated with the message string.
 - **`ChapterDbHelper` SQLite cache** — only for chapters. Cards and photos rely on Firestore's built-in offline persistence.
 - **`ItemTouchHelper` drag-and-drop** — admin only. Long-press-to-drag; releases commit a `WriteBatch` reordering to Firestore.
-- **`ExecutorService` for zip work** in `BackupActivity` — the heavy lifting doesn't block the UI thread.
+- **`ExecutorService` for zip work** in `BackupManager` (hosted by `SettingsActivity`, which owns the file pickers) — the heavy lifting doesn't block the UI thread.
 
 ## Material 3 theming
 
@@ -122,7 +122,7 @@ Model classes (`Chapter`, `Card`, `Photo`) MUST be preserved by ProGuard because
 
 ## Backup format
 
-Same zip as the website's `js/backup.js`: `data.json` (`version`, `exportedAt`, and arrays `chapters`, `cards`, `gallery`, `apps`, `settings`; each entry has `_id`, timestamps as epoch millis) + `images/{docId}.jpg` + `images/{docId}_thumb.jpg` (`_zipFull` / `_zipThumb` on gallery entries). `BackupActivity` is ADMIN only (checked in `onCreate`).
+Same zip as the website's `js/backup.js`: `data.json` (`version`, `exportedAt`, and arrays `chapters`, `cards`, `gallery`, `apps`, `settings`; each entry has `_id`, timestamps as epoch millis) + `images/{docId}.jpg` + `images/{docId}_thumb.jpg` (`_zipFull` / `_zipThumb` on gallery entries). `BackupManager` is ADMIN only: the Settings entries are hidden for other roles, and `SettingsActivity` and `BackupManager` both re-check the role.
 
 - **Export:** photos are downloaded by URL (R2 or legacy). `data.json` is written last. A photo that fails to download is skipped and counted; its entry keeps its Firestore fields.
 - **Import (replace mode):** parse and validate → upload photos through `PhotoStorageHelper` (new R2 keys) and write docs → delete docs not in the backup → only then delete the replaced photo files (R2 via the Worker, legacy via Firebase). Failed photos and leftover files are reported in the final toast. Timestamp fields are converted back from millis. `ChapterDbHelper.clearAll()` is called afterwards.

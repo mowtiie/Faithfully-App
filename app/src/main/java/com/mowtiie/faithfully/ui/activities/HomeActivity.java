@@ -223,7 +223,6 @@ public class HomeActivity extends FaithfullyActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_home, menu);
-        menu.findItem(R.id.menu_backup).setVisible(role == Role.ADMIN);
         return true;
     }
 
@@ -234,8 +233,6 @@ public class HomeActivity extends FaithfullyActivity {
             startActivity(new Intent(this, AboutActivity.class));
         } else if (id == R.id.menu_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
-        } else if (id == R.id.menu_backup && role == Role.ADMIN) {
-            startActivity(new Intent(this, BackupActivity.class));
         }
         return true;
     }

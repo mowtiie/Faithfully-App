@@ -1,23 +1,13 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.helper;
 
-import android.content.Intent;
+import android.app.Activity;
 import android.net.Uri;
-import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceFragmentCompat;
 
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -26,11 +16,6 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.storage.FirebaseStorage;
-import com.mowtiie.faithfully.R;
-import com.mowtiie.faithfully.databinding.ActivityBackupBinding;
-import com.mowtiie.faithfully.helper.AuthHelper;
-import com.mowtiie.faithfully.helper.ChapterDbHelper;
-import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -62,7 +47,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class BackupActivity extends FaithfullyActivity {
+public class BackupManager {
 
     private static final String TAG = "FaithfullyBackup";
 
@@ -87,92 +72,29 @@ public class BackupActivity extends FaithfullyActivity {
     private static final Set<String> TIMESTAMP_FIELDS = new HashSet<>(Arrays.asList(
             "date", "uploadedAt", "createdAt", "countdownTarget", "anniversaryStart"));
 
-    private ActivityBackupBinding binding;
+    private final Activity activity;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final FirebaseStorage storage = FirebaseStorage.getInstance();
 
-    private FirebaseFirestore db;
-    private FirebaseStorage   storage;
-    private BackupFragment    fragment;
-
-    private final ActivityResultLauncher<Intent> exportLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri uri = result.getData().getData();
-                    if (uri != null) doExport(uri);
-                }
-            });
-
-    private final ActivityResultLauncher<Intent> importLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri uri = result.getData().getData();
-                    if (uri != null) confirmAndImport(uri);
-                }
-            });
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (!isAdmin()) {
-            finish();
-            return;
-        }
-
-        EdgeToEdge.enable(this);
-        binding = ActivityBackupBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
-        db      = FirebaseFirestore.getInstance();
-        storage = FirebaseStorage.getInstance();
-
-        fragment = new BackupFragment();
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.backup_container, fragment)
-                .commit();
+    /** Backup, restore and clear-all for the admin. Hosted by an activity that owns the file pickers. */
+    public BackupManager(Activity activity) {
+        this.activity = activity;
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    /** Call from the host activity's onDestroy. */
+    public void shutdown() {
         executor.shutdownNow();
-        binding = null;
     }
 
-    @Override
-    public boolean onSupportNavigateUp() { finish(); return true; }
+    public static String suggestedFileName() {
+        return "faithfully-backup-" + DateFormat.format("yyyyMMdd-HHmmss", new Date()) + ".zip";
+    }
 
     private boolean isAdmin() {
-        return AuthHelper.currentRole(this) == AuthHelper.Role.ADMIN;
+        return AuthHelper.currentRole(activity) == AuthHelper.Role.ADMIN;
     }
 
-    void launchExportPicker() {
-        String suggestedName = "faithfully-backup-" +
-                DateFormat.format("yyyyMMdd-HHmmss", new Date()) + ".zip";
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/zip");
-        intent.putExtra(Intent.EXTRA_TITLE, suggestedName);
-        exportLauncher.launch(intent);
-    }
-
-    void launchImportPicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES,
-                new String[]{ "application/zip", "application/json" });
-        importLauncher.launch(intent);
-    }
 
     // ------------------------------------------------------------------
     //  Reading Firestore
@@ -209,7 +131,7 @@ public class BackupActivity extends FaithfullyActivity {
     //  Export
     // ------------------------------------------------------------------
 
-    private void doExport(Uri uri) {
+    public void export(Uri uri) {
         toast("Fetching data...");
         executor.execute(() -> {
             if (!isAdmin()) return;
@@ -219,14 +141,14 @@ public class BackupActivity extends FaithfullyActivity {
                         ? "Backup exported 🌻"
                         : "Backup exported, but " + skipped + " photo(s) could not be downloaded");
             } catch (Exception e) {
-                runOnUiThread(() -> onError("Export failed", e));
+                activity.runOnUiThread(() -> onError("Export failed", e));
             }
         });
     }
 
     /** Returns how many photos could not be included. */
     private int writeZip(Uri uri, Map<String, List<Doc>> all) throws Exception {
-        OutputStream fileOut = getContentResolver().openOutputStream(uri);
+        OutputStream fileOut = activity.getContentResolver().openOutputStream(uri);
         if (fileOut == null) throw new Exception("openOutputStream returned null");
 
         int skipped = 0;
@@ -337,8 +259,8 @@ public class BackupActivity extends FaithfullyActivity {
     //  Restore
     // ------------------------------------------------------------------
 
-    private void confirmAndImport(Uri uri) {
-        new MaterialAlertDialogBuilder(this)
+    public void confirmAndRestore(Uri uri) {
+        new MaterialAlertDialogBuilder(activity)
                 .setTitle("Restore backup?")
                 .setMessage("This will REPLACE your current chapters, letters, photos and other data with the backup. "
                         + "Anything that is not in the backup is removed. This cannot be undone.\n\nContinue?")
@@ -375,14 +297,14 @@ public class BackupActivity extends FaithfullyActivity {
                 Map<String, List<Doc>> current = fetchAll(SECTIONS);
 
                 int[] results = restore(parsed, zip, current);
-                ChapterDbHelper.getInstance(this).clearAll();
+                ChapterDbHelper.getInstance(activity).clearAll();
 
                 StringBuilder msg = new StringBuilder("Restore complete 🌻");
                 if (results[0] > 0) msg.append("\n").append(results[0]).append(" photo(s) could not be restored.");
                 if (results[1] > 0) msg.append("\n").append(results[1]).append(" old photo file(s) could not be removed.");
                 toastLong(msg.toString());
             } catch (Exception e) {
-                runOnUiThread(() -> onError("Import failed", e));
+                activity.runOnUiThread(() -> onError("Import failed", e));
             } finally {
                 try { if (zip != null) zip.close(); } catch (IOException ignored) { }
                 if (temp != null) //noinspection ResultOfMethodCallIgnored
@@ -454,7 +376,7 @@ public class BackupActivity extends FaithfullyActivity {
                         byte[] thumb = !zipThumb.isEmpty() && zip.getEntry(IMAGES_DIR + zipThumb) != null
                                 ? readEntry(zip, IMAGES_DIR + zipThumb) : null;
 
-                        PhotoStorageHelper.Uploaded up = PhotoStorageHelper.upload(this, full, thumb);
+                        PhotoStorageHelper.Uploaded up = PhotoStorageHelper.upload(activity, full, thumb);
                         fields.put("imageUrl",      up.imageUrl);
                         fields.put("thumbnailUrl",  up.thumbnailUrl);
                         fields.put("storagePath",   up.storagePath);
@@ -511,7 +433,7 @@ public class BackupActivity extends FaithfullyActivity {
         doomed.removeAll(keep);
 
         try {
-            PhotoStorageHelper.deleteKeys(this, doomed);
+            PhotoStorageHelper.deleteKeys(activity, doomed);
             return 0;
         } catch (IOException e) {
             Log.w(TAG, "Old photo files not removed", e);
@@ -586,8 +508,8 @@ public class BackupActivity extends FaithfullyActivity {
     }
 
     private File copyToCache(Uri uri) throws IOException {
-        File temp = File.createTempFile("restore", ".zip", getCacheDir());
-        try (InputStream in = getContentResolver().openInputStream(uri);
+        File temp = File.createTempFile("restore", ".zip", activity.getCacheDir());
+        try (InputStream in = activity.getContentResolver().openInputStream(uri);
              OutputStream out = new FileOutputStream(temp)) {
             if (in == null) throw new IOException("Could not open file");
             byte[] buf = new byte[8192];
@@ -622,8 +544,8 @@ public class BackupActivity extends FaithfullyActivity {
     //  Clear all
     // ------------------------------------------------------------------
 
-    void confirmClearAll() {
-        new MaterialAlertDialogBuilder(this)
+    public void confirmClearAll() {
+        new MaterialAlertDialogBuilder(activity)
                 .setTitle("Clear all data?")
                 .setMessage("This will PERMANENTLY DELETE everything, including every photo file. This cannot be undone.\n\nMake sure you've exported a backup first.")
                 .setPositiveButton("Continue", (d, w) -> confirmClearAllStep2())
@@ -632,9 +554,9 @@ public class BackupActivity extends FaithfullyActivity {
     }
 
     private void confirmClearAllStep2() {
-        final EditText input = new EditText(this);
+        final EditText input = new EditText(activity);
         input.setHint("Type DELETE to confirm");
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(activity)
                 .setTitle("Are you absolutely sure?")
                 .setMessage("Type DELETE in the field below to confirm.")
                 .setView(input)
@@ -668,7 +590,7 @@ public class BackupActivity extends FaithfullyActivity {
                         deleteLegacyFiles(d.data);
                     }
                 }
-                PhotoStorageHelper.deleteKeys(this, hostedKeys);
+                PhotoStorageHelper.deleteKeys(activity, hostedKeys);
 
                 for (String name : CLEAR_COLLECTIONS) {
                     List<String> ids = new ArrayList<>();
@@ -676,10 +598,10 @@ public class BackupActivity extends FaithfullyActivity {
                     commitDeletes(name, ids);
                 }
 
-                ChapterDbHelper.getInstance(this).clearAll();
+                ChapterDbHelper.getInstance(activity).clearAll();
                 toast("All data cleared 🌻");
             } catch (Exception e) {
-                runOnUiThread(() -> onError("Clear failed", e));
+                activity.runOnUiThread(() -> onError("Clear failed", e));
             }
         });
     }
@@ -689,16 +611,16 @@ public class BackupActivity extends FaithfullyActivity {
     // ------------------------------------------------------------------
 
     private void toast(String msg) {
-        runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_SHORT).show());
+        activity.runOnUiThread(() -> Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show());
     }
 
     private void toastLong(String msg) {
-        runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
+        activity.runOnUiThread(() -> Toast.makeText(activity, msg, Toast.LENGTH_LONG).show());
     }
 
     private void onError(String context, Exception e) {
         Log.e(TAG, context, e);
-        Toast.makeText(this, context + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
+        Toast.makeText(activity, context + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
     @Nullable
@@ -708,29 +630,5 @@ public class BackupActivity extends FaithfullyActivity {
 
     private static boolean equalsNullable(@Nullable String a, @Nullable String b) {
         return a == null ? b == null : a.equals(b);
-    }
-
-    public static class BackupFragment extends PreferenceFragmentCompat {
-
-        @Override
-        public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
-            setPreferencesFromResource(R.xml.preferences_backup, rootKey);
-        }
-
-        @Override
-        public boolean onPreferenceTreeClick(@NonNull Preference preference) {
-            if (!(getActivity() instanceof BackupActivity)) return super.onPreferenceTreeClick(preference);
-            BackupActivity act = (BackupActivity) getActivity();
-
-            String key = preference.getKey();
-            if (key == null) return super.onPreferenceTreeClick(preference);
-
-            switch (key) {
-                case "export":    act.launchExportPicker(); return true;
-                case "restore":   act.launchImportPicker(); return true;
-                case "clear_all": act.confirmClearAll();    return true;
-                default: return super.onPreferenceTreeClick(preference);
-            }
-        }
     }
 }

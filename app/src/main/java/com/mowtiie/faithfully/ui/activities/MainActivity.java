@@ -30,6 +30,7 @@ import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityMainBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.NetworkHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
@@ -157,12 +158,11 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
                     chapterList.clear();
                     if (snapshots != null) {
                         for (QueryDocumentSnapshot doc : snapshots) {
-                            Long order = doc.getLong("order");
                             chapterList.add(new Chapter(
                                     doc.getId(),
-                                    doc.getString("title"),
-                                    doc.getString("description"),
-                                    order != null ? order : 0
+                                    DocFields.string(doc, "title"),
+                                    DocFields.string(doc, "description"),
+                                    DocFields.number(doc, "order", 0)
                             ));
                         }
                         dbHelper.upsertAll(chapterList);
@@ -298,9 +298,6 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
-
-        boolean isAdmin = AuthHelper.isAdmin();
-        menu.findItem(R.id.menu_backup).setVisible(isAdmin);
         return true;
     }
 
@@ -321,11 +318,6 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         if (selectedMenuItem == R.id.menu_settings) {
             Intent settingsIntent = new Intent(this, SettingsActivity.class);
             startActivity(settingsIntent);
-        }
-
-        if (selectedMenuItem == R.id.menu_backup) {
-            Intent backupIntent = new Intent(this, BackupActivity.class);
-            startActivity(backupIntent);
         }
 
         return true;

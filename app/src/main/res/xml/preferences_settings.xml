@@ -1,28 +1,64 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <ListPreference
-        app:key="list_theme"
-        app:iconSpaceReserved="false"
-        app:title="@string/prefs_list_theme_title"
-        app:useSimpleSummaryProvider="true"
-        app:entries="@array/theme_entries"
-        app:entryValues="@array/theme_entryValues"
-        app:defaultValue="system_default"/>
+    <PreferenceCategory
+        app:title="@string/prefs_category_appearance"
+        app:iconSpaceReserved="false">
 
-    <ListPreference
-        app:key="list_contrast"
-        app:iconSpaceReserved="false"
-        app:title="@string/prefs_list_contrast_title"
-        app:useSimpleSummaryProvider="true"
-        app:entries="@array/contrast_entries"
-        app:entryValues="@array/contrast_entryValues"
-        app:defaultValue="low"/>
+        <ListPreference
+            app:key="list_theme"
+            app:iconSpaceReserved="false"
+            app:title="@string/prefs_list_theme_title"
+            app:useSimpleSummaryProvider="true"
+            app:entries="@array/theme_entries"
+            app:entryValues="@array/theme_entryValues"
+            app:defaultValue="system_default"/>
 
-    <SwitchPreferenceCompat
-        app:key="switch_dynamic_color"
-        app:iconSpaceReserved="false"
-        app:title="@string/prefs_switch_dynamic_color_title"
-        app:summary="@string/prefs_switch_dynamic_color_summary"
-        app:widgetLayout="@layout/view_preference_switch"/>
+        <ListPreference
+            app:key="list_contrast"
+            app:iconSpaceReserved="false"
+            app:title="@string/prefs_list_contrast_title"
+            app:useSimpleSummaryProvider="true"
+            app:entries="@array/contrast_entries"
+            app:entryValues="@array/contrast_entryValues"
+            app:defaultValue="low"/>
+
+        <SwitchPreferenceCompat
+            app:key="switch_dynamic_color"
+            app:iconSpaceReserved="false"
+            app:title="@string/prefs_switch_dynamic_color_title"
+            app:summary="@string/prefs_switch_dynamic_color_summary"
+            app:widgetLayout="@layout/view_preference_switch"/>
+    </PreferenceCategory>
+
+    <!-- Admin only: the two backup categories are hidden for everyone else in SettingsFragment. -->
+    <PreferenceCategory
+        app:key="category_backup"
+        app:title="@string/preference_backup_category_import_export"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:key="export"
+            app:iconSpaceReserved="false"
+            app:title="@string/preference_backup_export"
+            app:summary="@string/preference_backup_export_summary"/>
+
+        <Preference
+            app:key="restore"
+            app:iconSpaceReserved="false"
+            app:title="@string/preference_backup_restore"
+            app:summary="@string/preference_backup_restore_summary"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="category_danger_zone"
+        app:title="@string/preference_backup_category_danger_zone"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:key="clear_all"
+            app:iconSpaceReserved="false"
+            app:title="@string/preference_backup_clear_all_data"
+            app:summary="@string/preference_backup_clear_all_data_summary"/>
+    </PreferenceCategory>
 </PreferenceScreen>

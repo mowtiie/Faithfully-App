@@ -46,7 +46,7 @@ I picked Java and XML views instead of Kotlin and Compose on purpose — it's th
 - 📦 Export everything — chapters, letters, photos, apps, and home settings — to a single `.zip`
 - ♻️ Restore from a backup — it uses the same zip format as the website's backup
 - 🧹 Clear all data behind a type-DELETE-to-confirm step
-- 🔒 Admin only
+- 🔒 Admin only, found in Settings
 
 ### 🔐 Auth & Demo mode
 - 🔑 Email/password sign-in; only the two allow-listed accounts unlock the real content
@@ -175,8 +175,8 @@ app/src/main/java/com/mowtiie/faithfully/
 │   ├── GalleryActivity            # photo grid + admin actions
 │   ├── AddPhotoActivity           # picker + compress + upload
 │   ├── PhotoViewerActivity        # full-screen photo
-│   ├── BackupActivity             # export, restore, clear all
-│   ├── SettingsActivity / AboutActivity
+│   ├── SettingsActivity           # preferences + admin-only backup, restore, clear all
+│   ├── AboutActivity
 │   └── FaithfullyActivity         # base class: contrast + dynamic color
 │
 ├── ui/adapters/                   # Chapter, Card, Photo, and notice-banner adapters
@@ -185,6 +185,7 @@ app/src/main/java/com/mowtiie/faithfully/
 ├── helper/
 │   ├── AuthHelper                 # admin / reader / guest detection
 │   ├── PhotoStorageHelper         # R2 upload Worker client
+│   ├── BackupManager              # zip export, restore, clear all
 │   ├── HomeContentResolver        # sample text vs settings/home, countdown math
 │   ├── MockDataLoader             # demo content from assets/mock_data.json
 │   ├── ChapterDbHelper            # SQLite cache for chapters

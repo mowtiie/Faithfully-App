@@ -19,9 +19,6 @@
             android:name=".ui.activities.HomeActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.activities.BackupActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.activities.PhotoViewerActivity"
             android:exported="false"
             android:parentActivityName=".ui.activities.GalleryActivity" />
