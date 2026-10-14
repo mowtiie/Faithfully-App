@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -16,6 +15,7 @@ import com.google.firebase.firestore.Query;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityAddChapterBinding;
+import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 
 import java.util.HashMap;
@@ -35,6 +35,11 @@ public class AddChapterActivity extends FaithfullyActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (AuthHelper.currentRole(this) != AuthHelper.Role.ADMIN) {
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         binding = ActivityAddChapterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

@@ -17,7 +17,7 @@ import com.google.android.material.textview.MaterialTextView;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Photo;
 
-import org.jspecify.annotations.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -60,7 +60,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
 
         Glide.with(context)
                 .load(urlToLoad)
-                .placeholder(com.google.android.material.R.color.design_default_color_surface)
+                .placeholder(R.color.md_theme_surfaceContainer)
                 .centerCrop()
                 .into(holder.imageView);
 
@@ -106,14 +106,14 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         bottomSheetBehavior.setFitToContents(true);
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
-            public void onStateChanged(@androidx.annotation.NonNull View view, int newState) {
+            public void onStateChanged(@NonNull View view, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
             }
 
             @Override
-            public void onSlide(@androidx.annotation.NonNull View view, float v) {
+            public void onSlide(@NonNull View view, float v) {
                 // No action needed during sliding transitions
             }
         });

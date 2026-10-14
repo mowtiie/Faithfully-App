@@ -9,7 +9,6 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -144,7 +143,7 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
 
         db.collection("chapters")
                 .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener((snapshots, error) -> {
+                .addSnapshotListener(this, (snapshots, error) -> {
                     binding.progressBar.setVisibility(View.GONE);
 
                     if (error != null) {

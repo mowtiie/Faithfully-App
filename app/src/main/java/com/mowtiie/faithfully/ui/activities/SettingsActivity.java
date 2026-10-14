@@ -5,7 +5,6 @@ import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -72,7 +71,7 @@ public class SettingsActivity extends FaithfullyActivity {
 
             if (listContrast != null) {
                 listContrast.setOnPreferenceChangeListener((preference, newValue) -> {
-                    requireActivity().recreate();;
+                    requireActivity().recreate();
                     return true;
                 });
             }

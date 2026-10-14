@@ -1,5 +1,5 @@
 # ============================================================
-#  ProGuard / R8 rules for AliCards Admin
+#  ProGuard / R8 rules for Faithfully
 # ============================================================
 #  These rules tell R8 what to keep when shrinking and
 #  obfuscating the release build. Without them, Firebase
@@ -39,7 +39,7 @@
 
 # If you add more model classes that map to Firestore docs,
 # either add them here individually or use a package wildcard:
-# -keep class com.example.alicards.models.** { *; }
+# -keep class com.mowtiie.faithfully.data.** { *; }
 
 
 # ------------------------------------------------------------

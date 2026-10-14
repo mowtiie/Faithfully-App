@@ -13,7 +13,7 @@ import com.google.android.material.textview.MaterialTextView;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Chapter;
 
-import org.jspecify.annotations.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.List;
 
@@ -38,13 +38,14 @@ public class ChapterBottomSheetAdapter extends RecyclerView.Adapter<RecyclerView
     }
 
     @Override
-    public RecyclerView.@NonNull ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    @NonNull
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_bottom_sheet_chapter, parent, false);
         return new ChapterViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         ChapterViewHolder vh = (ChapterViewHolder) holder;
 
         if (getItemViewType(position) == TYPE_CHAPTER) {

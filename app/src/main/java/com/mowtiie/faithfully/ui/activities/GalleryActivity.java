@@ -12,7 +12,6 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -38,14 +37,14 @@ import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 import com.mowtiie.faithfully.ui.adapters.PhotoAdapter;
 
-import org.jspecify.annotations.NonNull;
+import androidx.annotation.NonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.OnPhotoActionListener {
+public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.OnPhotoActionListener {
 
     private ActivityGalleryBinding binding;
     private FirebaseFirestore db;
@@ -176,7 +175,7 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
 
         db.collection("gallery")
                 .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener((snapshots, error) -> {
+                .addSnapshotListener(this, (snapshots, error) -> {
                     binding.progressBar.setVisibility(View.GONE);
 
                     if (error != null) {
@@ -225,8 +224,9 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
 
         View editCaptionView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_caption, null);
         TextInputEditText inputCaption = editCaptionView.findViewById(R.id.input_caption);
-        inputCaption.setText(photo.getCaption());
-        inputCaption.setSelection(photo.getCaption().length());
+        String currentCaption = photo.getCaption() != null ? photo.getCaption() : "";
+        inputCaption.setText(currentCaption);
+        inputCaption.setSelection(currentCaption.length());
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle("Edit Caption")

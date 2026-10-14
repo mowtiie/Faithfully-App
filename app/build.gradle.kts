@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.preference)
     implementation(libs.glide)
+    implementation(libs.exifinterface)
     annotationProcessor(libs.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)

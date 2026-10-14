@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.view.View;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -13,7 +12,7 @@ import com.bumptech.glide.Glide;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityPhotoViewerBinding;
 
-public class PhotoViewerActivity extends AppCompatActivity {
+public class PhotoViewerActivity extends FaithfullyActivity {
 
     private ActivityPhotoViewerBinding binding;
 
@@ -34,8 +33,7 @@ public class PhotoViewerActivity extends AppCompatActivity {
         String imageUrl = getIntent().getStringExtra("image_url");
         String caption  = getIntent().getStringExtra("caption");
 
-        assert caption != null;
-        binding.toolbar.setTitle(caption.isEmpty() ? "Photo Viewer" : caption);
+        binding.toolbar.setTitle(caption == null || caption.isEmpty() ? "Photo Viewer" : caption);
 
         Glide.with(this).load(imageUrl).fitCenter().into(binding.ivFull);
         binding.toolbar.setNavigationOnClickListener(v -> finish());

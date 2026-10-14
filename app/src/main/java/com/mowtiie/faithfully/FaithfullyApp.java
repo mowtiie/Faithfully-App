@@ -12,7 +12,7 @@ public class FaithfullyApp extends Application {
         super.onCreate();
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String themeOption = prefs.getString("list_theme", "system_Default");
+        String themeOption = prefs.getString("list_theme", "system_default");
 
         switch (themeOption) {
             case "light":

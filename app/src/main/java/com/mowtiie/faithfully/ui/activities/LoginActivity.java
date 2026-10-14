@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -87,7 +86,7 @@ public class LoginActivity extends FaithfullyActivity {
                     setLoading(false);
                     AuthHelper.setGuestMode(this, false);
 
-                    Toast.makeText(this, "Welcome back, Mowtiie.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Welcome back.", Toast.LENGTH_SHORT).show();
                     goToMain();
                 })
                 .addOnFailureListener(e -> {

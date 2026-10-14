@@ -13,6 +13,7 @@ firebaseAuth = "24.1.0"
 firebaseFirestore = "26.3.0"
 preference = "1.2.1"
 firebaseStorage = "22.0.1"
+exifinterface = "1.4.2"
 
 [libraries]
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
@@ -28,6 +29,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
 preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage", version.ref = "firebaseStorage" }
+exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

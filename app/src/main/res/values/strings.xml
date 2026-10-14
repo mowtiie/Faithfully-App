@@ -29,7 +29,6 @@
     <string name="menu_item_backup">Backup &amp; Restore</string>
 
     <!-- APPEARANCE PREFERENCES -->
-    <string name="prefs_category_appearance">Appearance</string>
     <string name="prefs_list_theme_title">Theme</string>
     <string name="prefs_list_contrast_title">Contrast</string>
     <string name="prefs_switch_dynamic_color_title">Dynamic color</string>

@@ -21,10 +21,10 @@ public class FaithfullyActivity extends AppCompatActivity {
             case "low":
                 setTheme(R.style.Theme_Faithfully);
                 break;
-            case "high":
+            case "medium":
                 setTheme(R.style.Theme_Faithfully_MediumContrast);
                 break;
-            case "medium":
+            case "high":
             default:
                 setTheme(R.style.Theme_Faithfully_HighContrast);
                 break;

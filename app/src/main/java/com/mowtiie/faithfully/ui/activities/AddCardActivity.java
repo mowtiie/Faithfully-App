@@ -7,7 +7,6 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -18,6 +17,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityAddCardBinding;
+import com.mowtiie.faithfully.helper.AuthHelper;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -36,12 +36,18 @@ public class AddCardActivity extends FaithfullyActivity {
 
     private String editCardId = null;
     private long editOrder  = -1;
+    private String originalDateLabel = null;
     private boolean isEditMode = false;
     private String chapterId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (AuthHelper.currentRole(this) != AuthHelper.Role.ADMIN) {
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         binding = ActivityAddCardBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -69,7 +75,8 @@ public class AddCardActivity extends FaithfullyActivity {
             binding.toolbar.setTitle("Edit Card");
             binding.etTitle.setText(extras.getString("card_title"));
             binding.etMessage.setText(extras.getString("card_message"));
-            binding.etDate.setText(extras.getString("card_date_label"));
+            originalDateLabel = extras.getString("card_date_label");
+            binding.etDate.setText(originalDateLabel);
             binding.btnSave.setText("Save Changes");
         } else {
             String chapterTitle = extras != null ? extras.getString("chapter_title") : "";
@@ -89,7 +96,7 @@ public class AddCardActivity extends FaithfullyActivity {
 
         if (!existing.isEmpty()) {
             try {
-                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                 Date d = sdf.parse(existing);
                 if (d != null) cal.setTime(d);
@@ -139,20 +146,23 @@ public class AddCardActivity extends FaithfullyActivity {
             return;
         }
 
-        Date parsed;
+        Date parsed = null;
         try {
             parsed = new SimpleDateFormat("MM/dd/yyyy", Locale.US).parse(dateLabel);
-        } catch (ParseException e) {
+        } catch (ParseException ignored) {
+            // handled below
+        }
+
+        // Cards made elsewhere can carry a free-text label (e.g. "Sample"). When it is left
+        // untouched, keep the card's stored date instead of rejecting the edit.
+        boolean keepStoredDate = parsed == null && isEditMode && dateLabel.equals(originalDateLabel);
+        if (parsed == null && !keepStoredDate) {
             binding.etDate.setError("Invalid date");
             return;
         }
 
-        if (parsed == null) {
-            binding.etDate.setError("Invalid date"); return;
-        }
-
         setLoading(true);
-        Timestamp timestamp = new Timestamp(parsed);
+        Timestamp timestamp = keepStoredDate ? null : new Timestamp(parsed);
 
         if (isEditMode) {
             updateCard(title, message, dateLabel, timestamp);
@@ -204,7 +214,7 @@ public class AddCardActivity extends FaithfullyActivity {
         data.put("title",     title);
         data.put("message",   message);
         data.put("dateLabel", dateLabel);
-        data.put("date",      timestamp);
+        if (timestamp != null) data.put("date", timestamp);
         data.put("order",     editOrder);
         data.put("chapterId", chapterId);
 
