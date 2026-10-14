@@ -27,7 +27,7 @@
             app:tint="?attr/colorOnTertiaryContainer" />
 
         <com.google.android.material.textview.MaterialTextView
-            android:text="@string/notice_guest_mode_chapters"
+            android:id="@+id/tv_notice"
             android:textColor="?attr/colorOnTertiaryContainer"
             android:textAppearance="?attr/textAppearanceTitleSmall"
             android:layout_width="match_parent"

@@ -34,6 +34,7 @@ import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityCardsBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
@@ -52,6 +53,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
     private ItemTouchHelper itemTouchHelper;
     private boolean isDragging = false;
     private boolean isAdmin;
+    private AuthHelper.Role role;
 
     private String chapterId;
     private String chapterTitle;
@@ -68,7 +70,8 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             return insets;
         });
 
-        isAdmin = AuthHelper.isAdmin();
+        role = AuthHelper.currentRole(this);
+        isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
         dbHelper = ChapterDbHelper.getInstance(this);
 
@@ -100,12 +103,25 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
         } else {
-            NoticeAdapter noticeAdapter = new NoticeAdapter();
+            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(this, role);
             ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
             binding.recyclerView.setAdapter(concatAdapter);
         }
 
+        if (role == AuthHelper.Role.GUEST) {
+            showMock();
+            return;
+        }
+
         loadCards();
+    }
+
+    // Guests see the sample letters for this chapter and never touch Firestore.
+    private void showMock() {
+        cardList.clear();
+        cardList.addAll(MockDataLoader.getCards(this, chapterId));
+        adapter.notifyDataSetChanged();
+        binding.tvEmpty.setVisibility(cardList.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void setupDragAndDrop() {

@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,10 +33,14 @@ import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Photo;
 import com.mowtiie.faithfully.databinding.ActivityGalleryBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
+import com.mowtiie.faithfully.helper.MockDataLoader;
+import com.mowtiie.faithfully.helper.PhotoStorageHelper;
+import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 import com.mowtiie.faithfully.ui.adapters.PhotoAdapter;
 
 import org.jspecify.annotations.NonNull;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +56,7 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
     private ItemTouchHelper itemTouchHelper;
     private boolean isDragging = false;
     private boolean isAdmin;
+    private AuthHelper.Role role;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +70,8 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
             return insets;
         });
 
-        isAdmin = AuthHelper.isAdmin();
+        role = AuthHelper.currentRole(this);
+        isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
         storage = FirebaseStorage.getInstance();
 
@@ -84,13 +91,35 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
 
         GridLayoutManager glm = new GridLayoutManager(this, 2);
         binding.recyclerView.setLayoutManager(glm);
-        binding.recyclerView.setAdapter(adapter);
 
         if (isAdmin) {
+            binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
+        } else {
+            // The banner is the first item and spans both grid columns.
+            glm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+                    return position == 0 ? 2 : 1;
+                }
+            });
+            binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(this, role), adapter));
+        }
+
+        if (role == AuthHelper.Role.GUEST) {
+            showMock();
+            return;
         }
 
         loadPhotos();
+    }
+
+    // Guests see the sample photos and never touch Firestore.
+    private void showMock() {
+        photoList.clear();
+        photoList.addAll(MockDataLoader.getGallery(this));
+        adapter.notifyDataSetChanged();
+        binding.tvEmpty.setVisibility(photoList.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void setupDragAndDrop() {
@@ -225,7 +254,9 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Delete photo")
-                .setMessage("Delete this photo permanently?")
+                .setMessage(PhotoStorageHelper.isHosted(photo.getImageUrl())
+                        ? "The photo and its thumbnail will be removed for good."
+                        : "Delete this photo permanently?")
                 .setPositiveButton("Delete", (d, w) -> deletePhoto(photo))
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -246,6 +277,36 @@ public class GalleryActivity extends AppCompatActivity implements PhotoAdapter.O
     }
 
     private void deletePhoto(Photo photo) {
+        if (!isAdmin) {
+            return;
+        }
+
+        if (PhotoStorageHelper.isHosted(photo.getImageUrl())) {
+            deleteHostedPhoto(photo);
+        } else {
+            deleteLegacyPhoto(photo);
+        }
+    }
+
+    // R2 files go first so a failure leaves the document in place and the delete can be retried.
+    private void deleteHostedPhoto(Photo photo) {
+        new Thread(() -> {
+            try {
+                PhotoStorageHelper.deleteKeys(this,
+                        PhotoStorageHelper.hostedKeys(photo.getImageUrl(), photo.getThumbnailUrl()));
+            } catch (IOException e) {
+                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                return;
+            }
+
+            runOnUiThread(() -> db.collection("gallery").document(photo.getId())
+                    .delete()
+                    .addOnSuccessListener(unused -> Toast.makeText(this, "Photo deleted", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()));
+        }).start();
+    }
+
+    private void deleteLegacyPhoto(Photo photo) {
         db.collection("gallery").document(photo.getId())
                 .delete()
                 .addOnSuccessListener(unused -> {

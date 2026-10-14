@@ -10,7 +10,17 @@
     <string name="link_app_source_code">https://github.com/mowtiie/Faithfully-App</string>
     <string name="link_app_author">https://github.com/mowtiie</string>
 
-    <string name="notice_guest_mode_chapters">You are currently in read-only mode. Editing and deleting are disabled.</string>
+    <string name="notice_reader">🩷 Signed in — read-only</string>
+    <string name="notice_guest">👀 Demo mode — showing sample content</string>
+
+    <!-- HOME -->
+    <string name="home_title">Home</string>
+    <string name="home_days">days</string>
+    <string name="home_hours">hours</string>
+    <string name="home_minutes">min</string>
+    <string name="home_seconds">sec</string>
+    <string name="home_letters">Letters</string>
+    <string name="home_gallery">Gallery</string>
 
     <!-- MENU ITEMS -->
     <string name="menu_item_about">About</string>

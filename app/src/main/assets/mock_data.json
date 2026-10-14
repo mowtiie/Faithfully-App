@@ -1,5 +1,14 @@
 {
-  "_note": "Same content as the website's MOCK_CHAPTERS/MOCK_CARDS/MOCK_GALLERY in script.js. Edit this file to update guest-mode content across the Android app.",
+  "_note": "Same content as the website's MOCK_CHAPTERS/MOCK_CARDS/MOCK_GALLERY in js/data/mock.js of Faithfully-Web. Edit this file to update guest-mode content across the Android app.",
+
+  "home": {
+    "title":            "To Someone Special.",
+    "subtitle":         "A quiet place made just for you — letters, memories, and countdowns for the moments ahead. 🌻",
+    "countdownLabel":   "Counting down to something wonderful 🎂",
+    "countdownFinish":  "Something wonderful is here! 🎉",
+    "anniversaryLabel": "Days on this journey 💛",
+    "anniversaryUnit":  "days so far"
+  },
 
   "chapters": [
     {
@@ -33,7 +42,7 @@
       "id": "mock-c-2", "chapterId": "mock-ch-1", "order": 1,
       "title": "Just an example",
       "dateLabel": "Sample",
-      "message": "Each card expands when you tap it, so you can read the message inside. This one is a placeholder so demo visitors can see the layout. 🩵"
+      "message": "Tap a card to open the letter and read the message inside. This one is a placeholder so demo visitors can see the layout. 🩵"
     },
     {
       "id": "mock-c-3", "chapterId": "mock-ch-2", "order": 0,
@@ -45,7 +54,7 @@
       "id": "mock-c-4", "chapterId": "mock-ch-2", "order": 1,
       "title": "Sample about rainy days",
       "dateLabel": "Sample",
-      "message": "The chapters help group letters into moods and moments. This one belongs to the 'everyday things' chapter. Nothing to see here — just a demo. 🩷"
+      "message": "The chapters help group letters into moods and moments. This one belongs to the \"everyday things\" chapter. Nothing to see here — just a demo. 🩷"
     },
     {
       "id": "mock-c-5", "chapterId": "mock-ch-3", "order": 0,

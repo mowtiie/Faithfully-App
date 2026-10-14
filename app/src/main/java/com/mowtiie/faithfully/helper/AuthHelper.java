@@ -57,6 +57,8 @@ public class AuthHelper {
     public static void signOutEverything(Context ctx) {
         FirebaseAuth.getInstance().signOut();
         setGuestMode(ctx, false);
+        // The cached chapters belong to the signed-in session; later guests must not see them.
+        ChapterDbHelper.getInstance(ctx).clearAll();
     }
 
     private static SharedPreferences prefs(Context ctx) {

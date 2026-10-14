@@ -31,6 +31,7 @@ import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityMainBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.NetworkHelper;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
@@ -52,6 +53,7 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
 
     private boolean isDragging = false;
     private boolean isAdmin;
+    private AuthHelper.Role role;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +67,8 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
             return insets;
         });
 
-        isAdmin = AuthHelper.isAdmin();
+        role = AuthHelper.currentRole(this);
+        isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
         dbHelper = ChapterDbHelper.getInstance(this);
 
@@ -85,11 +88,12 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         binding.toolbar.setNavigationOnClickListener(v -> {
-            if (isAdmin) {
+            if (role != AuthHelper.Role.GUEST) {
                 showLogoutDialog();
             } else {
                 AuthHelper.setGuestMode(this, false);
-                startActivity(new Intent(this, LoginActivity.class));
+                startActivity(new Intent(this, LoginActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
                 finish();
             }
         });
@@ -98,13 +102,26 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
             binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
         } else {
-            NoticeAdapter noticeAdapter = new NoticeAdapter();
+            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(this, role);
             ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
             binding.recyclerView.setAdapter(concatAdapter);
         }
 
+        if (role == AuthHelper.Role.GUEST) {
+            showMock();
+            return;
+        }
+
         showCached();
         listenFirestore();
+    }
+
+    // Guests see the sample chapters and never touch Firestore or the chapter cache.
+    private void showMock() {
+        chapterList.clear();
+        chapterList.addAll(MockDataLoader.getChapters(this));
+        adapter.notifyDataSetChanged();
+        binding.tvEmpty.setVisibility(chapterList.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void showCached() {
@@ -321,7 +338,8 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
                 .setMessage("Sign out and return to the login screen?")
                 .setPositiveButton("Sign out", (d, w) -> {
                     AuthHelper.signOutEverything(this);
-                    startActivity(new Intent(this, LoginActivity.class));
+                    startActivity(new Intent(this, LoginActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
                     finish();
                 })
                 .setNegativeButton("Cancel", null)

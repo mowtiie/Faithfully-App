@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -30,28 +31,39 @@ public class MockDataLoader {
     private static List<Chapter> cachedChapters;
     private static List<Card> cachedCards;
     private static List<Photo> cachedPhotos;
+    private static HomeContentResolver.Text cachedHome = HomeContentResolver.Text.fallback();
     private static boolean loaded = false;
 
     private MockDataLoader() {}
 
+    public static HomeContentResolver.Text getHomeDefaults(Context ctx) {
+        ensureLoaded(ctx);
+        return cachedHome;
+    }
+
+    // The getters return copies sorted by order, so callers can't disturb the shared cache.
     public static List<Chapter> getChapters(Context ctx) {
         ensureLoaded(ctx);
-        return cachedChapters;
+        List<Chapter> copy = new ArrayList<>(cachedChapters);
+        Collections.sort(copy, (a, b) -> Long.compare(a.getOrder(), b.getOrder()));
+        return copy;
     }
 
     public static List<Card> getCards(Context ctx, String chapterId) {
         ensureLoaded(ctx);
-        if (chapterId == null) return cachedCards;
         List<Card> filtered = new ArrayList<>();
         for (Card c : cachedCards) {
-            if (chapterId.equals(c.getChapterId())) filtered.add(c);
+            if (chapterId == null || chapterId.equals(c.getChapterId())) filtered.add(c);
         }
+        Collections.sort(filtered, (a, b) -> Long.compare(a.getOrder(), b.getOrder()));
         return filtered;
     }
 
     public static List<Photo> getGallery(Context ctx) {
         ensureLoaded(ctx);
-        return cachedPhotos;
+        List<Photo> copy = new ArrayList<>(cachedPhotos);
+        Collections.sort(copy, (a, b) -> Long.compare(a.getOrder(), b.getOrder()));
+        return copy;
     }
 
     private static synchronized void ensureLoaded(Context ctx) {
@@ -64,6 +76,18 @@ public class MockDataLoader {
         try {
             String json = readAsset(ctx, ASSET_PATH);
             JSONObject root = new JSONObject(json);
+
+            JSONObject home = root.optJSONObject("home");
+            if (home != null) {
+                HomeContentResolver.Text sample = HomeContentResolver.Text.fallback();
+                cachedHome = new HomeContentResolver.Text(
+                        home.optString("title", sample.title),
+                        home.optString("subtitle", sample.subtitle),
+                        home.optString("countdownLabel", sample.countdownLabel),
+                        home.optString("countdownFinish", sample.countdownFinish),
+                        home.optString("anniversaryLabel", sample.anniversaryLabel),
+                        home.optString("anniversaryUnit", sample.anniversaryUnit));
+            }
 
             JSONArray chArr = root.getJSONArray("chapters");
             for (int i = 0; i < chArr.length(); i++) {
