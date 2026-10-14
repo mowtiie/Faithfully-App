@@ -33,6 +33,7 @@ import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityCardsBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
@@ -196,15 +197,14 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
                     cardList.clear();
                     if (snapshots != null) {
                         for (QueryDocumentSnapshot doc : snapshots) {
-                            Long order = doc.getLong("order");
                             cardList.add(new Card(
                                     doc.getId(),
-                                    doc.getString("title"),
-                                    doc.getString("message"),
-                                    doc.getString("dateLabel"),
-                                    doc.getTimestamp("date"),
-                                    order != null ? order : 0,
-                                    doc.getString("chapterId")
+                                    DocFields.string(doc, "title"),
+                                    DocFields.string(doc, "message"),
+                                    DocFields.string(doc, "dateLabel"),
+                                    DocFields.timestamp(doc, "date"),
+                                    DocFields.number(doc, "order", 0),
+                                    DocFields.string(doc, "chapterId")
                             ));
                         }
                     }

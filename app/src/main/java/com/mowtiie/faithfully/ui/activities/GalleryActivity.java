@@ -32,6 +32,7 @@ import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Photo;
 import com.mowtiie.faithfully.databinding.ActivityGalleryBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
+import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
@@ -189,16 +190,15 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
                     photoList.clear();
                     if (snapshots != null) {
                         for (QueryDocumentSnapshot doc : snapshots) {
-                            Long order = doc.getLong("order");
                             photoList.add(new Photo(
                                     doc.getId(),
-                                    doc.getString("imageUrl"),
-                                    doc.getString("thumbnailUrl"),
-                                    doc.getString("caption"),
-                                    order != null ? order : 0,
-                                    doc.getTimestamp("uploadedAt"),
-                                    doc.getString("storagePath"),
-                                    doc.getString("thumbnailPath")
+                                    DocFields.string(doc, "imageUrl"),
+                                    DocFields.string(doc, "thumbnailUrl"),
+                                    DocFields.string(doc, "caption"),
+                                    DocFields.number(doc, "order", 0),
+                                    DocFields.timestamp(doc, "uploadedAt"),
+                                    DocFields.string(doc, "storagePath"),
+                                    DocFields.string(doc, "thumbnailPath")
                             ));
                         }
                     }
