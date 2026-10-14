@@ -51,7 +51,9 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 
 - **View binding** everywhere. No `findViewById` in Activities.
 - **EdgeToEdge + WindowInsetsCompat** in every Activity's `onCreate`. Follow the existing pattern.
-- **`FaithfullyActivity` base class** for main content activities.
+- **`FaithfullyActivity` base class** for every activity — it applies the user's contrast and dynamic-colour settings. New activities must extend it, not `AppCompatActivity`.
+- **Auto Backup** excludes the chapter cache database (`backup_rules.xml`, `data_extraction_rules.xml`). Keep private content out of it.
+- **Firestore listeners** in activities use `addSnapshotListener(this, ...)` so they detach with the activity (Home registers/removes its own in `onStart`/`onStop`).
 - **`ConcatAdapter` + `NoticeAdapter`** — used to prepend a read-only banner to lists in READER and GUEST modes. Adapter is instantiated with the message string.
 - **`ChapterDbHelper` SQLite cache** — only for chapters. Cards and photos rely on Firestore's built-in offline persistence.
 - **`ItemTouchHelper` drag-and-drop** — admin only. Long-press-to-drag; releases commit a `WriteBatch` reordering to Firestore.
