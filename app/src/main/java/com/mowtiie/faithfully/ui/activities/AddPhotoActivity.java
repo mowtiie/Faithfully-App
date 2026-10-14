@@ -18,10 +18,10 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityAddPhotoBinding;
+import com.mowtiie.faithfully.helper.AuthHelper;
+import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 import com.mowtiie.faithfully.util.ImageUtil;
 
 import java.io.IOException;
@@ -32,7 +32,6 @@ public class AddPhotoActivity extends AppCompatActivity {
 
     private ActivityAddPhotoBinding binding;
     private FirebaseFirestore db;
-    private FirebaseStorage storage;
 
     private Uri selectedImageUri;
 
@@ -48,6 +47,11 @@ public class AddPhotoActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (AuthHelper.currentRole(this) != AuthHelper.Role.ADMIN) {
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         binding = ActivityAddPhotoBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -58,7 +62,6 @@ public class AddPhotoActivity extends AppCompatActivity {
         });
 
         db = FirebaseFirestore.getInstance();
-        storage = FirebaseStorage.getInstance();
 
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
@@ -95,7 +98,13 @@ public class AddPhotoActivity extends AppCompatActivity {
                 byte[] thumbBytes = ImageUtil.processImage(this, selectedImageUri,
                         ImageUtil.THUMB_WIDTH, ImageUtil.THUMB_QUALITY);
 
-                runOnUiThread(() -> uploadBytes(fullBytes, thumbBytes));
+                runOnUiThread(() -> setLoading(true, "Uploading..."));
+                PhotoStorageHelper.Uploaded uploaded =
+                        PhotoStorageHelper.upload(this, fullBytes, thumbBytes);
+
+                runOnUiThread(() -> saveFirestoreDoc(uploaded));
+            } catch (PhotoStorageHelper.StorageException e) {
+                runOnUiThread(() -> onUploadError(e));
             } catch (IOException e) {
                 runOnUiThread(() -> {
                     setLoading(false, null);
@@ -106,37 +115,7 @@ public class AddPhotoActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void uploadBytes(byte[] fullBytes, byte[] thumbBytes) {
-        long now = System.currentTimeMillis();
-        String fullPath  = "gallery/" + now + ".jpg";
-        String thumbPath = "gallery/" + now + "_thumb.jpg";
-
-        StorageReference fullRef  = storage.getReference(fullPath);
-        StorageReference thumbRef = storage.getReference(thumbPath);
-
-        setLoading(true, "Uploading full image...");
-
-        fullRef.putBytes(fullBytes)
-                .addOnSuccessListener(taskSnapshot -> {
-                    fullRef.getDownloadUrl().addOnSuccessListener(fullUrl -> {
-
-                        setLoading(true, "Uploading thumbnail...");
-
-                        thumbRef.putBytes(thumbBytes)
-                                .addOnSuccessListener(thumbSnapshot -> {
-                                    thumbRef.getDownloadUrl().addOnSuccessListener(thumbUrl -> {
-                                        saveFirestoreDoc(
-                                                fullUrl.toString(), thumbUrl.toString(),
-                                                fullPath, thumbPath);
-                                    });
-                                })
-                                .addOnFailureListener(this::onUploadError);
-                    });
-                })
-                .addOnFailureListener(this::onUploadError);
-    }
-
-    private void saveFirestoreDoc(String imageUrl, String thumbnailUrl, String storagePath, String thumbnailPath) {
+    private void saveFirestoreDoc(PhotoStorageHelper.Uploaded uploaded) {
         setLoading(true, "Saving...");
 
         db.collection("gallery")
@@ -153,10 +132,10 @@ public class AddPhotoActivity extends AppCompatActivity {
                     String caption = binding.etCaption.getText() != null ? binding.etCaption.getText().toString().trim() : "";
 
                     Map<String, Object> data = new HashMap<>();
-                    data.put("imageUrl", imageUrl);
-                    data.put("thumbnailUrl", thumbnailUrl);
-                    data.put("storagePath", storagePath);
-                    data.put("thumbnailPath", thumbnailPath);
+                    data.put("imageUrl", uploaded.imageUrl);
+                    data.put("thumbnailUrl", uploaded.thumbnailUrl);
+                    data.put("storagePath", uploaded.storagePath);
+                    data.put("thumbnailPath", uploaded.thumbnailPath);
                     data.put("caption", caption.isEmpty() ? null : caption);
                     data.put("order", nextOrder);
                     data.put("uploadedAt", Timestamp.now());
@@ -167,9 +146,20 @@ public class AddPhotoActivity extends AppCompatActivity {
                                 Toast.makeText(this, "Photo uploaded! 🐱", Toast.LENGTH_SHORT).show();
                                 finish();
                             })
-                            .addOnFailureListener(this::onUploadError);
+                            .addOnFailureListener(e -> saveFailed(uploaded, e));
                 })
-                .addOnFailureListener(this::onUploadError);
+                .addOnFailureListener(e -> saveFailed(uploaded, e));
+    }
+
+    private void saveFailed(PhotoStorageHelper.Uploaded uploaded, Exception e) {
+        onUploadError(e);
+        new Thread(() -> {
+            try {
+                PhotoStorageHelper.deleteKeys(this,
+                        PhotoStorageHelper.hostedKeys(uploaded.imageUrl, uploaded.thumbnailUrl));
+            } catch (IOException ignored) {
+            }
+        }).start();
     }
 
     private void onUploadError(Exception e) {

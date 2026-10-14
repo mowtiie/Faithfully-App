@@ -20,55 +20,73 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityBackupBinding;
+import com.mowtiie.faithfully.helper.AuthHelper;
+import com.mowtiie.faithfully.helper.ChapterDbHelper;
+import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class BackupActivity extends AppCompatActivity {
 
     private static final String TAG = "FaithfullyBackup";
 
-    private static final String[] COLLECTIONS_TO_BACKUP  = { "cards", "chapters", "gallery" };
-    private static final String[] IMAGE_COLLECTION_NAMES = { "gallery" };
+    // Same sections and zip layout as the website's js/backup.js
+    private static final String   SETTINGS      = "settings";
+    private static final String   SETTINGS_ID   = "home";
+    private static final String   GALLERY       = "gallery";
+    private static final String[] SECTIONS      = { "chapters", "cards", GALLERY, "apps", SETTINGS };
+    private static final String[] CLEAR_COLLECTIONS = { "cards", "chapters", GALLERY };
 
     private static final int    BACKUP_VERSION = 1;
     private static final String DATA_JSON      = "data.json";
     private static final String IMAGES_DIR     = "images/";
+    private static final int    BATCH_SIZE     = 400;
 
     private static final String K_VERSION     = "version";
     private static final String K_EXPORTED_AT = "exportedAt";
     private static final String K_ID          = "_id";
     private static final String K_ZIP_FULL    = "_zipFull";
     private static final String K_ZIP_THUMB   = "_zipThumb";
+
+    private static final Set<String> TIMESTAMP_FIELDS = new HashSet<>(Arrays.asList(
+            "date", "uploadedAt", "createdAt", "countdownTarget", "anniversaryStart"));
 
     private ActivityBackupBinding binding;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -96,6 +114,11 @@ public class BackupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!isAdmin()) {
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         binding = ActivityBackupBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -129,6 +152,10 @@ public class BackupActivity extends AppCompatActivity {
     @Override
     public boolean onSupportNavigateUp() { finish(); return true; }
 
+    private boolean isAdmin() {
+        return AuthHelper.currentRole(this) == AuthHelper.Role.ADMIN;
+    }
+
     void launchExportPicker() {
         String suggestedName = "faithfully-backup-" +
                 DateFormat.format("yyyyMMdd-HHmmss", new Date()) + ".zip";
@@ -148,107 +175,131 @@ public class BackupActivity extends AppCompatActivity {
         importLauncher.launch(intent);
     }
 
+    // ------------------------------------------------------------------
+    //  Reading Firestore
+    // ------------------------------------------------------------------
+
+    private static class Doc {
+        final String id;
+        final Map<String, Object> data;
+        Doc(String id, Map<String, Object> data) {
+            this.id = id;
+            this.data = data != null ? data : new HashMap<>();
+        }
+    }
+
+    /** Blocking: call from the executor. */
+    private Map<String, List<Doc>> fetchAll(String[] sections) throws Exception {
+        Map<String, List<Doc>> all = new HashMap<>();
+        for (String name : sections) {
+            List<Doc> docs = new ArrayList<>();
+            if (SETTINGS.equals(name)) {
+                DocumentSnapshot d = Tasks.await(db.collection(SETTINGS).document(SETTINGS_ID).get());
+                if (d.exists()) docs.add(new Doc(d.getId(), d.getData()));
+            } else {
+                for (DocumentSnapshot d : Tasks.await(db.collection(name).get()).getDocuments()) {
+                    docs.add(new Doc(d.getId(), d.getData()));
+                }
+            }
+            all.put(name, docs);
+        }
+        return all;
+    }
+
+    // ------------------------------------------------------------------
+    //  Export
+    // ------------------------------------------------------------------
+
     private void doExport(Uri uri) {
         toast("Fetching data...");
-        fetchAllCollections(snapshots ->
-                executor.execute(() -> writeZip(uri, snapshots)));
+        executor.execute(() -> {
+            if (!isAdmin()) return;
+            try {
+                int skipped = writeZip(uri, fetchAll(SECTIONS));
+                toastLong(skipped == 0
+                        ? "Backup exported 🌻"
+                        : "Backup exported, but " + skipped + " photo(s) could not be downloaded");
+            } catch (Exception e) {
+                runOnUiThread(() -> onError("Export failed", e));
+            }
+        });
     }
 
-    private interface FetchAllCallback {
-        void onFetched(Map<String, QuerySnapshot> snapshots);
-    }
+    /** Returns how many photos could not be included. */
+    private int writeZip(Uri uri, Map<String, List<Doc>> all) throws Exception {
+        OutputStream fileOut = getContentResolver().openOutputStream(uri);
+        if (fileOut == null) throw new Exception("openOutputStream returned null");
 
-    private void fetchAllCollections(FetchAllCallback cb) {
-        Map<String, QuerySnapshot> collected = new HashMap<>();
-        fetchNext(0, collected, cb);
-    }
-
-    private void fetchNext(int i, Map<String, QuerySnapshot> collected, FetchAllCallback cb) {
-        if (i >= COLLECTIONS_TO_BACKUP.length) { cb.onFetched(collected); return; }
-        String name = COLLECTIONS_TO_BACKUP[i];
-        db.collection(name).get()
-                .addOnSuccessListener(snap -> {
-                    collected.put(name, snap);
-                    fetchNext(i + 1, collected, cb);
-                })
-                .addOnFailureListener(e -> onError("Export failed while fetching " + name, e));
-    }
-
-    private void writeZip(Uri uri, Map<String, QuerySnapshot> snapshots) {
-        try (OutputStream fileOut = getContentResolver().openOutputStream(uri);
-             ZipOutputStream zip = new ZipOutputStream(fileOut)) {
-
-            if (fileOut == null) throw new Exception("openOutputStream returned null");
-
+        int skipped = 0;
+        try (ZipOutputStream zip = new ZipOutputStream(fileOut)) {
             JSONObject root = new JSONObject();
             root.put(K_VERSION,     BACKUP_VERSION);
             root.put(K_EXPORTED_AT, System.currentTimeMillis());
 
-            List<GalleryExportEntry> imagesToDownload = new ArrayList<>();
+            List<Doc> gallery = all.get(GALLERY);
+            int photoTotal = 0;
+            if (gallery != null) {
+                for (Doc d : gallery) if (str(d.data.get("imageUrl")) != null) photoTotal++;
+            }
+            int photoIndex = 0;
 
-            for (String collectionName : COLLECTIONS_TO_BACKUP) {
-                QuerySnapshot snap = snapshots.get(collectionName);
-                if (snap == null) continue;
-
-                boolean hasImages = arrayContains(IMAGE_COLLECTION_NAMES, collectionName);
+            for (String name : SECTIONS) {
                 JSONArray arr = new JSONArray();
+                List<Doc> docs = all.get(name);
+                if (docs != null) {
+                    for (Doc doc : docs) {
+                        JSONObject obj = mapToJson(doc.data);
+                        obj.put(K_ID, doc.id);
 
-                for (QueryDocumentSnapshot doc : snap) {
-                    JSONObject obj = firestoreDocToJson(doc);
-                    obj.put(K_ID, doc.getId());
-
-                    if (hasImages) {
-                        String imageUrl    = doc.getString("imageUrl");
-                        String thumbUrl    = doc.getString("thumbnailUrl");
-                        String thumbPath   = doc.getString("thumbnailPath");
+                        String imageUrl = GALLERY.equals(name) ? str(doc.data.get("imageUrl")) : null;
                         if (imageUrl != null) {
-                            String zipFull  = doc.getId() + ".jpg";
-                            String zipThumb = thumbPath != null ? doc.getId() + "_thumb.jpg" : null;
-                            obj.put(K_ZIP_FULL,  zipFull);
-                            obj.put(K_ZIP_THUMB, zipThumb != null ? zipThumb : JSONObject.NULL);
-                            imagesToDownload.add(new GalleryExportEntry(
-                                    imageUrl, thumbUrl, zipFull, zipThumb, zipThumb != null));
+                            toast("Downloading image " + (++photoIndex) + " of " + photoTotal + "...");
+                            if (!addPhotoToZip(zip, doc, obj, imageUrl)) skipped++;
                         }
+                        arr.put(obj);
                     }
-                    arr.put(obj);
                 }
-                root.put(collectionName, arr);
+                root.put(name, arr);
             }
 
+            // data.json goes last: it records which photos actually made it into the zip.
             zip.putNextEntry(new ZipEntry(DATA_JSON));
             zip.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
-
-            int total = imagesToDownload.size();
-            for (int i = 0; i < total; i++) {
-                GalleryExportEntry entry = imagesToDownload.get(i);
-                final int index = i + 1;
-                runOnUiThread(() -> toast("Downloading image " + index + " of " + total + "..."));
-
-                byte[] fullBytes = downloadBytes(entry.fullUrl);
-                zip.putNextEntry(new ZipEntry(IMAGES_DIR + entry.zipFullName));
-                zip.write(fullBytes);
-                zip.closeEntry();
-
-                if (entry.hasThumb && entry.thumbUrl != null) {
-                    byte[] thumbBytes = downloadBytes(entry.thumbUrl);
-                    zip.putNextEntry(new ZipEntry(IMAGES_DIR + entry.zipThumbName));
-                    zip.write(thumbBytes);
-                    zip.closeEntry();
-                }
-            }
-
-            zip.finish();
-            runOnUiThread(() -> toast("Backup exported 🌻"));
-
-        } catch (Exception e) {
-            runOnUiThread(() -> onError("Export failed", e));
         }
+        return skipped;
     }
 
-    private JSONObject firestoreDocToJson(QueryDocumentSnapshot doc) throws JSONException {
+    /** Photos come down by URL, so R2 and legacy Firebase photos export the same way. */
+    private boolean addPhotoToZip(ZipOutputStream zip, Doc doc, JSONObject obj, String imageUrl)
+            throws IOException, JSONException {
+        byte[] full, thumb = null;
+        try {
+            full = downloadBytes(imageUrl);
+            String thumbUrl = str(doc.data.get("thumbnailUrl"));
+            if (thumbUrl != null) thumb = downloadBytes(thumbUrl);
+        } catch (Exception e) {
+            Log.w(TAG, "Photo not included: " + doc.id, e);
+            return false;
+        }
+
+        zip.putNextEntry(new ZipEntry(IMAGES_DIR + doc.id + ".jpg"));
+        zip.write(full);
+        zip.closeEntry();
+        obj.put(K_ZIP_FULL, doc.id + ".jpg");
+
+        if (thumb != null) {
+            zip.putNextEntry(new ZipEntry(IMAGES_DIR + doc.id + "_thumb.jpg"));
+            zip.write(thumb);
+            zip.closeEntry();
+            obj.put(K_ZIP_THUMB, doc.id + "_thumb.jpg");
+        }
+        return true;
+    }
+
+    private JSONObject mapToJson(Map<String, Object> data) throws JSONException {
         JSONObject obj = new JSONObject();
-        for (Map.Entry<String, Object> e : doc.getData().entrySet()) {
+        for (Map.Entry<String, Object> e : data.entrySet()) {
             obj.put(e.getKey(), valueToJson(e.getValue()));
         }
         return obj;
@@ -259,13 +310,7 @@ public class BackupActivity extends AppCompatActivity {
         if (value == null) return JSONObject.NULL;
         if (value instanceof Timestamp) return ((Timestamp) value).toDate().getTime();
         if (value instanceof Date)      return ((Date) value).getTime();
-        if (value instanceof Map) {
-            JSONObject nested = new JSONObject();
-            for (Map.Entry<String, Object> e : ((Map<String, Object>) value).entrySet()) {
-                nested.put(e.getKey(), valueToJson(e.getValue()));
-            }
-            return nested;
-        }
+        if (value instanceof Map)       return mapToJson((Map<String, Object>) value);
         if (value instanceof List) {
             JSONArray nested = new JSONArray();
             for (Object item : (List<Object>) value) nested.put(valueToJson(item));
@@ -274,33 +319,30 @@ public class BackupActivity extends AppCompatActivity {
         return value;
     }
 
-    private byte[] downloadBytes(String urlStr) throws Exception {
-        try (InputStream in = new URL(urlStr).openStream();
+    private byte[] downloadBytes(String urlStr) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        conn.setConnectTimeout(30_000);
+        conn.setReadTimeout(30_000);
+        try (InputStream in = conn.getInputStream();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buf = new byte[8192];
             int n;
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
             return out.toByteArray();
+        } finally {
+            conn.disconnect();
         }
     }
 
-    private static class GalleryExportEntry {
-        final String fullUrl, thumbUrl, zipFullName, zipThumbName;
-        final boolean hasThumb;
-        GalleryExportEntry(String fullUrl, String thumbUrl,
-                           String zipFullName, String zipThumbName, boolean hasThumb) {
-            this.fullUrl      = fullUrl;
-            this.thumbUrl     = thumbUrl;
-            this.zipFullName  = zipFullName;
-            this.zipThumbName = zipThumbName;
-            this.hasThumb     = hasThumb;
-        }
-    }
+    // ------------------------------------------------------------------
+    //  Restore
+    // ------------------------------------------------------------------
 
     private void confirmAndImport(Uri uri) {
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Restore backup?")
-                .setMessage("This will DELETE all current data, then restore from the file. This cannot be undone.\n\nContinue?")
+                .setMessage("This will REPLACE your current chapters, letters, photos and other data with the backup. "
+                        + "Anything that is not in the backup is removed. This cannot be undone.\n\nContinue?")
                 .setPositiveButton("Restore", (d, w) -> doImport(uri))
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -309,224 +351,222 @@ public class BackupActivity extends AppCompatActivity {
     private void doImport(Uri uri) {
         toast("Reading backup file...");
         executor.execute(() -> {
+            if (!isAdmin()) return;
+            File temp = null;
+            ZipFile zip = null;
             try {
-                Map<String, byte[]> zipImages = new HashMap<>();
-                String dataJson = null;
+                temp = copyToCache(uri);
 
-                try (InputStream in = getContentResolver().openInputStream(uri);
-                     ZipInputStream zip = new ZipInputStream(in)) {
-                    if (in == null) throw new Exception("Could not open file");
-
-                    ZipEntry entry;
-                    while ((entry = zip.getNextEntry()) != null) {
-                        ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        byte[] buf = new byte[8192];
-                        int n;
-                        while ((n = zip.read(buf)) > 0) out.write(buf, 0, n);
-                        byte[] bytes = out.toByteArray();
-
-                        if (DATA_JSON.equals(entry.getName())) {
-                            dataJson = new String(bytes, StandardCharsets.UTF_8);
-                        } else if (entry.getName().startsWith(IMAGES_DIR)) {
-                            zipImages.put(entry.getName().substring(IMAGES_DIR.length()), bytes);
-                        }
-                        zip.closeEntry();
+                String dataJson;
+                try {
+                    zip = new ZipFile(temp);
+                    ZipEntry entry = zip.getEntry(DATA_JSON);
+                    if (entry == null) throw new Exception("That zip has no data.json, so it is not a Faithfully backup.");
+                    dataJson = readText(zip.getInputStream(entry));
+                } catch (ZipException notAZip) {
+                    zip = null;
+                    try (InputStream in = new java.io.FileInputStream(temp)) {
+                        dataJson = readText(in);
                     }
                 }
 
-                if (dataJson == null) {
-                    try (InputStream in = getContentResolver().openInputStream(uri)) {
-                        if (in == null) throw new Exception("Could not re-open file");
-                        StringBuilder sb = new StringBuilder();
-                        BufferedReader reader = new BufferedReader(
-                                new InputStreamReader(in, StandardCharsets.UTF_8));
-                        String line;
-                        while ((line = reader.readLine()) != null) sb.append(line);
-                        dataJson = sb.toString();
-                    }
-                }
+                Map<String, List<JSONObject>> parsed = parseBackup(new JSONObject(dataJson));
 
-                JSONObject root = new JSONObject(dataJson);
-                int version = root.optInt(K_VERSION, 1);
-                if (version > BACKUP_VERSION) {
-                    throw new Exception("Backup is from a newer app version");
-                }
+                toast("Reading current data...");
+                Map<String, List<Doc>> current = fetchAll(SECTIONS);
 
-                Map<String, List<ParsedDoc>> parsed = new HashMap<>();
-                for (String name : COLLECTIONS_TO_BACKUP) {
-                    JSONArray arr = root.optJSONArray(name);
-                    if (arr != null) parsed.put(name, parseCollection(arr, zipImages,
-                            arrayContains(IMAGE_COLLECTION_NAMES, name)));
-                }
+                int[] results = restore(parsed, zip, current);
+                ChapterDbHelper.getInstance(this).clearAll();
 
-                runOnUiThread(() -> replaceAllAndWrite(parsed));
-
+                StringBuilder msg = new StringBuilder("Restore complete 🌻");
+                if (results[0] > 0) msg.append("\n").append(results[0]).append(" photo(s) could not be restored.");
+                if (results[1] > 0) msg.append("\n").append(results[1]).append(" old photo file(s) could not be removed.");
+                toastLong(msg.toString());
             } catch (Exception e) {
                 runOnUiThread(() -> onError("Import failed", e));
+            } finally {
+                try { if (zip != null) zip.close(); } catch (IOException ignored) { }
+                if (temp != null) //noinspection ResultOfMethodCallIgnored
+                    temp.delete();
             }
         });
     }
 
-    private void replaceAllAndWrite(Map<String, List<ParsedDoc>> parsed) {
-        toast("Deleting current data...");
-        fetchAllCollections(snapshots ->
-                deleteAllFirestoreAndStorage(snapshots, () -> writeCollections(parsed, 0)));
-    }
-
-    private void deleteAllFirestoreAndStorage(Map<String, QuerySnapshot> snapshots, Runnable onDone) {
-        for (String name : IMAGE_COLLECTION_NAMES) {
-            QuerySnapshot snap = snapshots.get(name);
-            if (snap == null) continue;
-            for (QueryDocumentSnapshot doc : snap) {
-                String sp = doc.getString("storagePath");
-                String tp = doc.getString("thumbnailPath");
-                if (sp != null) storage.getReference(sp).delete()
-                        .addOnFailureListener(e -> Log.w(TAG, "Could not delete " + sp, e));
-                if (tp != null) storage.getReference(tp).delete()
-                        .addOnFailureListener(e -> Log.w(TAG, "Could not delete " + tp, e));
-            }
+    private Map<String, List<JSONObject>> parseBackup(JSONObject root) throws Exception {
+        if (root.optInt(K_VERSION, 1) > BACKUP_VERSION) {
+            throw new Exception("This backup was made by a newer version and cannot be restored here.");
         }
 
-        List<QueryDocumentSnapshot> toDelete = new ArrayList<>();
-        for (QuerySnapshot snap : snapshots.values()) {
-            for (QueryDocumentSnapshot d : snap) toDelete.add(d);
-        }
-        if (toDelete.isEmpty()) { onDone.run(); return; }
+        Map<String, List<JSONObject>> parsed = new HashMap<>();
+        for (String name : SECTIONS) {
+            if (!root.has(name) || root.isNull(name)) continue;
+            JSONArray arr = root.optJSONArray(name);
+            if (arr == null) throw new Exception("The \"" + name + "\" section of the backup is not a list.");
 
-        commitDeleteChunk(toDelete, 0, onDone);
-    }
-
-    private void commitDeleteChunk(List<QueryDocumentSnapshot> toDelete,
-                                   int startIndex, Runnable onDone) {
-        int end = Math.min(startIndex + 500, toDelete.size());
-        WriteBatch batch = db.batch();
-        for (int i = startIndex; i < end; i++) batch.delete(toDelete.get(i).getReference());
-        batch.commit()
-                .addOnSuccessListener(unused -> {
-                    if (end >= toDelete.size()) onDone.run();
-                    else                         commitDeleteChunk(toDelete, end, onDone);
-                })
-                .addOnFailureListener(e -> onError("Delete failed", e));
-    }
-
-    private void writeCollections(Map<String, List<ParsedDoc>> parsed, int i) {
-        if (i >= COLLECTIONS_TO_BACKUP.length) {
-            toast("Restore complete 🌻");
-            return;
-        }
-        String name = COLLECTIONS_TO_BACKUP[i];
-        List<ParsedDoc> docs = parsed.get(name);
-        if (docs == null || docs.isEmpty()) { writeCollections(parsed, i + 1); return; }
-
-        toast("Writing " + name + " (" + docs.size() + ")...");
-
-        if (arrayContains(IMAGE_COLLECTION_NAMES, name)) {
-            uploadImagesThenWrite(name, docs, 0, () -> writeCollections(parsed, i + 1));
-        } else {
-            writeInBatches(name, docs, 0, () -> writeCollections(parsed, i + 1));
-        }
-    }
-
-    private void writeInBatches(String collection, List<ParsedDoc> docs,
-                                int startIndex, Runnable onDone) {
-        int end = Math.min(startIndex + 500, docs.size());
-        WriteBatch batch = db.batch();
-        for (int i = startIndex; i < end; i++) {
-            ParsedDoc pd = docs.get(i);
-            batch.set(db.collection(collection).document(pd.id), pd.data);
-        }
-        batch.commit()
-                .addOnSuccessListener(unused -> {
-                    if (end >= docs.size()) onDone.run();
-                    else                     writeInBatches(collection, docs, end, onDone);
-                })
-                .addOnFailureListener(e -> onError("Write failed", e));
-    }
-
-    private void uploadImagesThenWrite(String collection, List<ParsedDoc> docs,
-                                       int i, Runnable onDone) {
-        if (i >= docs.size()) { onDone.run(); return; }
-        ParsedDoc pd = docs.get(i);
-
-        toast("Uploading image " + (i + 1) + " of " + docs.size() + "...");
-
-        if (pd.fullBytes == null) {
-            db.collection(collection).document(pd.id).set(pd.data)
-                    .addOnSuccessListener(unused -> uploadImagesThenWrite(collection, docs, i + 1, onDone))
-                    .addOnFailureListener(e -> onError("Write failed", e));
-            return;
-        }
-
-        long ts = System.currentTimeMillis();
-        String fullPath  = collection + "/" + ts + "_" + i + ".jpg";
-        String thumbPath = pd.thumbBytes != null ? collection + "/" + ts + "_" + i + "_thumb.jpg" : null;
-
-        StorageReference fullRef = storage.getReference(fullPath);
-        fullRef.putBytes(pd.fullBytes)
-                .addOnSuccessListener(t ->
-                        fullRef.getDownloadUrl().addOnSuccessListener(fullUrl -> {
-                            pd.data.put("imageUrl",    fullUrl.toString());
-                            pd.data.put("storagePath", fullPath);
-
-                            if (thumbPath != null) {
-                                StorageReference thumbRef = storage.getReference(thumbPath);
-                                thumbRef.putBytes(pd.thumbBytes)
-                                        .addOnSuccessListener(t2 ->
-                                                thumbRef.getDownloadUrl().addOnSuccessListener(thumbUrl -> {
-                                                    pd.data.put("thumbnailUrl",  thumbUrl.toString());
-                                                    pd.data.put("thumbnailPath", thumbPath);
-                                                    db.collection(collection).document(pd.id).set(pd.data)
-                                                            .addOnSuccessListener(u -> uploadImagesThenWrite(collection, docs, i + 1, onDone))
-                                                            .addOnFailureListener(e -> onError("Write failed", e));
-                                                }))
-                                        .addOnFailureListener(e -> onError("Thumb upload failed", e));
-                            } else {
-                                db.collection(collection).document(pd.id).set(pd.data)
-                                        .addOnSuccessListener(u -> uploadImagesThenWrite(collection, docs, i + 1, onDone))
-                                        .addOnFailureListener(e -> onError("Write failed", e));
-                            }
-                        }))
-                .addOnFailureListener(e -> onError("Image upload failed", e));
-    }
-
-    private List<ParsedDoc> parseCollection(JSONArray arr, Map<String, byte[]> zipImages,
-                                            boolean hasImages) throws JSONException {
-        List<ParsedDoc> result = new ArrayList<>(arr.length());
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject obj = arr.getJSONObject(i);
-            String id = obj.optString(K_ID, null);
-            if (id == null) continue;
-
-            byte[] fullBytes  = null;
-            byte[] thumbBytes = null;
-            if (hasImages) {
-                String zipFull = obj.optString(K_ZIP_FULL, null);
-                if (zipFull != null) fullBytes = zipImages.get(zipFull);
-                if (!obj.isNull(K_ZIP_THUMB)) {
-                    String zipThumb = obj.getString(K_ZIP_THUMB);
-                    thumbBytes = zipImages.get(zipThumb);
+            List<JSONObject> list = new ArrayList<>(arr.length());
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                String id = obj.optString(K_ID, "");
+                if (id.isEmpty() || id.contains("/")) {
+                    throw new Exception("An entry in \"" + name + "\" has no valid id.");
                 }
+                list.add(obj);
             }
-
-            Map<String, Object> data = jsonObjectToMap(obj);
-            data.remove(K_ID);
-            data.remove(K_ZIP_FULL);
-            data.remove(K_ZIP_THUMB);
-            if (hasImages && fullBytes != null) {
-                data.remove("imageUrl");
-                data.remove("thumbnailUrl");
-                data.remove("storagePath");
-                data.remove("thumbnailPath");
-            }
-
-            result.add(new ParsedDoc(id, data, fullBytes, thumbBytes));
+            parsed.put(name, list);
         }
-        return result;
+
+        if (parsed.isEmpty()) throw new Exception("That backup contains none of the expected data.");
+        return parsed;
+    }
+
+    /**
+     * Uploads and writes first, removes old files last, so a failure part-way never
+     * leaves the gallery pointing at deleted photos. Returns {failedPhotos, leftoverFiles}.
+     */
+    private int[] restore(Map<String, List<JSONObject>> parsed, @Nullable ZipFile zip,
+                          Map<String, List<Doc>> current) throws Exception {
+        int failedPhotos = 0;
+
+        Map<String, Map<String, Object>> finalGallery = new HashMap<>();
+        for (Doc d : current.get(GALLERY)) finalGallery.put(d.id, d.data);
+
+        for (String name : SECTIONS) {
+            List<JSONObject> entries = parsed.get(name);
+            if (entries == null) continue;
+            toast("Writing " + name + " (" + entries.size() + ")...");
+
+            List<Doc> batchDocs = new ArrayList<>();
+            Set<String> backupIds = new HashSet<>();
+
+            for (int i = 0; i < entries.size(); i++) {
+                JSONObject obj = entries.get(i);
+                String id = obj.getString(K_ID);
+                backupIds.add(id);
+
+                Map<String, Object> fields = toFields(obj);
+                String zipFull = obj.optString(K_ZIP_FULL, "");
+
+                if (GALLERY.equals(name) && !zipFull.isEmpty() && zip != null
+                        && zip.getEntry(IMAGES_DIR + zipFull) != null) {
+                    toast("Uploading image " + (i + 1) + " of " + entries.size() + "...");
+                    try {
+                        byte[] full = readEntry(zip, IMAGES_DIR + zipFull);
+                        String zipThumb = obj.optString(K_ZIP_THUMB, "");
+                        byte[] thumb = !zipThumb.isEmpty() && zip.getEntry(IMAGES_DIR + zipThumb) != null
+                                ? readEntry(zip, IMAGES_DIR + zipThumb) : null;
+
+                        PhotoStorageHelper.Uploaded up = PhotoStorageHelper.upload(this, full, thumb);
+                        fields.put("imageUrl",      up.imageUrl);
+                        fields.put("thumbnailUrl",  up.thumbnailUrl);
+                        fields.put("storagePath",   up.storagePath);
+                        fields.put("thumbnailPath", up.thumbnailPath);
+                    } catch (IOException e) {
+                        Log.w(TAG, "Photo not restored: " + id, e);
+                        failedPhotos++;
+                        continue;
+                    }
+                    Tasks.await(db.collection(name).document(id).set(fields));
+                    finalGallery.put(id, fields);
+                    continue;
+                }
+
+                batchDocs.add(new Doc(id, fields));
+                if (GALLERY.equals(name)) finalGallery.put(id, fields);
+            }
+
+            commitSets(name, batchDocs);
+
+            List<String> stale = new ArrayList<>();
+            for (Doc d : current.get(name)) if (!backupIds.contains(d.id)) stale.add(d.id);
+            commitDeletes(name, stale);
+            if (GALLERY.equals(name)) for (String id : stale) finalGallery.remove(id);
+        }
+
+        int leftover = 0;
+        if (parsed.containsKey(GALLERY)) {
+            toast("Cleaning up old photo files...");
+            leftover = removeReplacedPhotoFiles(current.get(GALLERY), finalGallery);
+        }
+        return new int[]{ failedPhotos, leftover };
+    }
+
+    /** Removes files of photos that were replaced or dropped; returns how many R2 files are left behind. */
+    private int removeReplacedPhotoFiles(List<Doc> before, Map<String, Map<String, Object>> after) {
+        Set<String> keep = new HashSet<>();
+        for (Map<String, Object> d : after.values()) {
+            keep.addAll(PhotoStorageHelper.hostedKeys(str(d.get("imageUrl")), str(d.get("thumbnailUrl"))));
+        }
+
+        Set<String> doomed = new LinkedHashSet<>();
+        for (Doc old : before) {
+            Map<String, Object> next = after.get(old.id);
+            String oldUrl = str(old.data.get("imageUrl"));
+            if (next != null && equalsNullable(oldUrl, str(next.get("imageUrl")))) continue;
+
+            if (PhotoStorageHelper.isHosted(oldUrl)) {
+                doomed.addAll(PhotoStorageHelper.hostedKeys(oldUrl, str(old.data.get("thumbnailUrl"))));
+            } else {
+                deleteLegacyFiles(old.data);
+            }
+        }
+        doomed.removeAll(keep);
+
+        try {
+            PhotoStorageHelper.deleteKeys(this, doomed);
+            return 0;
+        } catch (IOException e) {
+            Log.w(TAG, "Old photo files not removed", e);
+            return doomed.size();
+        }
+    }
+
+    private void deleteLegacyFiles(Map<String, Object> data) {
+        for (String field : new String[]{ "storagePath", "thumbnailPath" }) {
+            String path = str(data.get(field));
+            if (path == null) continue;
+            try {
+                Tasks.await(storage.getReference(path).delete());
+            } catch (Exception e) {
+                Log.w(TAG, "Could not delete " + path, e);
+            }
+        }
+    }
+
+    private Map<String, Object> toFields(JSONObject obj) throws JSONException {
+        Map<String, Object> fields = jsonObjectToMap(obj);
+        fields.remove(K_ID);
+        fields.remove(K_ZIP_FULL);
+        fields.remove(K_ZIP_THUMB);
+        for (String key : TIMESTAMP_FIELDS) {
+            Object v = fields.get(key);
+            if (v instanceof Number) fields.put(key, new Timestamp(new Date(((Number) v).longValue())));
+        }
+        return fields;
+    }
+
+    private void commitSets(String collection, List<Doc> docs) throws Exception {
+        for (int i = 0; i < docs.size(); i += BATCH_SIZE) {
+            WriteBatch batch = db.batch();
+            for (Doc d : docs.subList(i, Math.min(i + BATCH_SIZE, docs.size()))) {
+                batch.set(db.collection(collection).document(d.id), d.data);
+            }
+            Tasks.await(batch.commit());
+        }
+    }
+
+    private void commitDeletes(String collection, List<String> ids) throws Exception {
+        for (int i = 0; i < ids.size(); i += BATCH_SIZE) {
+            WriteBatch batch = db.batch();
+            for (String id : ids.subList(i, Math.min(i + BATCH_SIZE, ids.size()))) {
+                batch.delete(db.collection(collection).document(id));
+            }
+            Tasks.await(batch.commit());
+        }
     }
 
     private Map<String, Object> jsonObjectToMap(JSONObject obj) throws JSONException {
         Map<String, Object> map = new HashMap<>();
-        java.util.Iterator<String> keys = obj.keys();
+        Iterator<String> keys = obj.keys();
         while (keys.hasNext()) {
             String k = keys.next();
             map.put(k, jsonValueToObject(obj.get(k)));
@@ -546,19 +586,47 @@ public class BackupActivity extends AppCompatActivity {
         return val;
     }
 
-    private static class ParsedDoc {
-        final String id;
-        final Map<String, Object> data;
-        final byte[] fullBytes, thumbBytes;
-        ParsedDoc(String id, Map<String, Object> data, byte[] fullBytes, byte[] thumbBytes) {
-            this.id = id; this.data = data; this.fullBytes = fullBytes; this.thumbBytes = thumbBytes;
+    private File copyToCache(Uri uri) throws IOException {
+        File temp = File.createTempFile("restore", ".zip", getCacheDir());
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             OutputStream out = new FileOutputStream(temp)) {
+            if (in == null) throw new IOException("Could not open file");
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+        return temp;
+    }
+
+    private byte[] readEntry(ZipFile zip, String name) throws IOException {
+        ZipEntry entry = zip.getEntry(name);
+        if (entry == null) throw new IOException("Missing " + name);
+        try (InputStream in = zip.getInputStream(entry);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            return out.toByteArray();
         }
     }
+
+    private String readText(InputStream in) throws IOException {
+        try (InputStream stream = in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = stream.read(buf)) > 0) out.write(buf, 0, n);
+            return out.toString(StandardCharsets.UTF_8.name());
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Clear all
+    // ------------------------------------------------------------------
 
     void confirmClearAll() {
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Clear all data?")
-                .setMessage("This will PERMANENTLY DELETE everything, including any image files in Storage. This cannot be undone.\n\nMake sure you've exported a backup first.")
+                .setMessage("This will PERMANENTLY DELETE everything, including every photo file. This cannot be undone.\n\nMake sure you've exported a backup first.")
                 .setPositiveButton("Continue", (d, w) -> confirmClearAllStep2())
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -581,18 +649,52 @@ public class BackupActivity extends AppCompatActivity {
 
     private void doClearAll() {
         toast("Fetching current data...");
-        fetchAllCollections(snapshots -> {
-            int total = 0;
-            for (QuerySnapshot s : snapshots.values()) total += s.size();
-            if (total == 0) { toast("Nothing to delete — already empty 🌻"); return; }
+        executor.execute(() -> {
+            if (!isAdmin()) return;
+            try {
+                Map<String, List<Doc>> all = fetchAll(CLEAR_COLLECTIONS);
+                int total = 0;
+                for (List<Doc> docs : all.values()) total += docs.size();
+                if (total == 0) { toast("Nothing to delete — already empty 🌻"); return; }
 
-            toast("Deleting " + total + " items...");
-            deleteAllFirestoreAndStorage(snapshots, () -> toast("All data cleared 🌻"));
+                toast("Deleting " + total + " items...");
+
+                // Photo files first: if the Worker refuses, the documents stay and it can be retried.
+                Set<String> hostedKeys = new LinkedHashSet<>();
+                for (Doc d : all.get(GALLERY)) {
+                    String imageUrl = str(d.data.get("imageUrl"));
+                    if (PhotoStorageHelper.isHosted(imageUrl)) {
+                        hostedKeys.addAll(PhotoStorageHelper.hostedKeys(imageUrl, str(d.data.get("thumbnailUrl"))));
+                    } else {
+                        deleteLegacyFiles(d.data);
+                    }
+                }
+                PhotoStorageHelper.deleteKeys(this, hostedKeys);
+
+                for (String name : CLEAR_COLLECTIONS) {
+                    List<String> ids = new ArrayList<>();
+                    for (Doc d : all.get(name)) ids.add(d.id);
+                    commitDeletes(name, ids);
+                }
+
+                ChapterDbHelper.getInstance(this).clearAll();
+                toast("All data cleared 🌻");
+            } catch (Exception e) {
+                runOnUiThread(() -> onError("Clear failed", e));
+            }
         });
     }
 
+    // ------------------------------------------------------------------
+    //  Helpers
+    // ------------------------------------------------------------------
+
     private void toast(String msg) {
         runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_SHORT).show());
+    }
+
+    private void toastLong(String msg) {
+        runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
     }
 
     private void onError(String context, Exception e) {
@@ -600,9 +702,13 @@ public class BackupActivity extends AppCompatActivity {
         Toast.makeText(this, context + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
-    private static boolean arrayContains(String[] arr, String value) {
-        for (String s : arr) if (s.equals(value)) return true;
-        return false;
+    @Nullable
+    private static String str(Object value) {
+        return value instanceof String && !((String) value).isEmpty() ? (String) value : null;
+    }
+
+    private static boolean equalsNullable(@Nullable String a, @Nullable String b) {
+        return a == null ? b == null : a.equals(b);
     }
 
     public static class BackupFragment extends PreferenceFragmentCompat {
