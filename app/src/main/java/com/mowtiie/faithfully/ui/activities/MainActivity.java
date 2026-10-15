@@ -312,6 +312,6 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
             startActivity(settingsIntent);
         }
 
-        return true;
+        return super.onOptionsItemSelected(item);
     }
 }

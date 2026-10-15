@@ -407,7 +407,7 @@
                 android:layout_height="wrap_content">
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btn_letters"
+                    android:id="@+id/btn_chapters"
                     style="@style/Widget.Material3.CardView.Filled"
                     app:cardElevation="0dp"
                     app:cardBackgroundColor="?attr/colorSecondaryContainer"
@@ -429,14 +429,14 @@
                             android:layout_width="28dp"
                             android:layout_height="28dp"/>
                         <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_letters"
+                            android:text="@string/home_chapters"
                             android:layout_marginTop="12dp"
                             android:textColor="?attr/colorOnSecondaryContainer"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"/>
                         <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_letters_desc"
+                            android:text="@string/home_chapters_desc"
                             android:textColor="?attr/colorOnSecondaryContainer"
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:layout_width="wrap_content"
