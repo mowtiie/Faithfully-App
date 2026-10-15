@@ -73,6 +73,9 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         dbHelper = ChapterDbHelper.getInstance(this);
 
         setSupportActionBar(binding.toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         if (!isAdmin) {
             binding.fabAdd.hide();
@@ -86,17 +89,6 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         chapterList = new ArrayList<>();
         adapter = new ChapterAdapter(chapterList, this, isAdmin);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        binding.toolbar.setNavigationOnClickListener(v -> {
-            if (role != AuthHelper.Role.GUEST) {
-                showLogoutDialog();
-            } else {
-                AuthHelper.setGuestMode(this, false);
-                startActivity(new Intent(this, LoginActivity.class)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
-                finish();
-            }
-        });
 
         if (isAdmin) {
             binding.recyclerView.setAdapter(adapter);
@@ -321,19 +313,5 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         }
 
         return true;
-    }
-
-    private void showLogoutDialog() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Sign out")
-                .setMessage("Sign out and return to the login screen?")
-                .setPositiveButton("Sign out", (d, w) -> {
-                    AuthHelper.signOutEverything(this);
-                    startActivity(new Intent(this, LoginActivity.class)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
-                    finish();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 }

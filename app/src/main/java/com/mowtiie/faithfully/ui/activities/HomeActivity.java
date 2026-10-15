@@ -1,5 +1,8 @@
 package com.mowtiie.faithfully.ui.activities;
 
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -54,6 +57,8 @@ public class HomeActivity extends FaithfullyActivity {
 
     private HomeContentResolver.Content content;
     private ListenerRegistration registration;
+    private ObjectAnimator skeletonPulse;
+    private ObjectAnimator finishPulse;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable ticker = new Runnable() {
         @Override
@@ -82,21 +87,14 @@ public class HomeActivity extends FaithfullyActivity {
 
         setSupportActionBar(binding.toolbar);
 
-        binding.toolbar.setNavigationOnClickListener(v -> {
-            if (signedIn) {
-                showLogoutDialog();
-            } else {
-                AuthHelper.setGuestMode(this, false);
-                goToLogin();
-            }
-        });
-
-        if (role == Role.READER) {
-            binding.tvBanner.setText(R.string.notice_reader);
+        if (role != Role.ADMIN && !isBannerDismissed()) {
+            binding.tvBanner.setText(role == Role.READER ? R.string.notice_reader : R.string.notice_guest);
             binding.bannerCard.setVisibility(View.VISIBLE);
-        } else if (role == Role.GUEST) {
-            binding.tvBanner.setText(R.string.notice_guest);
-            binding.bannerCard.setVisibility(View.VISIBLE);
+            binding.btnBannerDismiss.setOnClickListener(v -> {
+                getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                        .putBoolean(bannerKey(), true).apply();
+                binding.bannerCard.setVisibility(View.GONE);
+            });
         }
 
         binding.btnLetters.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
@@ -110,12 +108,17 @@ public class HomeActivity extends FaithfullyActivity {
         super.onStart();
         if (signedIn) watchSettings();
         handler.post(ticker);
+        if (signedIn && !settingsResolved) startSkeletonPulse();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         handler.removeCallbacks(ticker);
+        stopAnimator(skeletonPulse);
+        skeletonPulse = null;
+        stopAnimator(finishPulse);
+        finishPulse = null;
         if (registration != null) {
             registration.remove();
             registration = null;
@@ -180,8 +183,14 @@ public class HomeActivity extends FaithfullyActivity {
 
         // Signed-in users wait for the first snapshot so sample text doesn't flash before real text.
         boolean pending = signedIn && !settingsResolved;
-        binding.content.setVisibility(pending ? View.INVISIBLE : View.VISIBLE);
-        binding.progressBar.setVisibility(pending ? View.VISIBLE : View.GONE);
+        binding.contentColumn.setVisibility(pending ? View.GONE : View.VISIBLE);
+        binding.skeleton.setVisibility(pending ? View.VISIBLE : View.GONE);
+        if (pending) {
+            startSkeletonPulse();
+        } else {
+            stopAnimator(skeletonPulse);
+            skeletonPulse = null;
+        }
 
         content = HomeContentResolver.resolve(defaults, signedIn, settings, guestStart, new Date());
 
@@ -203,17 +212,55 @@ public class HomeActivity extends FaithfullyActivity {
         if (parts == null) {
             binding.countdownBlocks.setVisibility(View.GONE);
             binding.tvCountdownFinish.setVisibility(View.VISIBLE);
+            startFinishPulse();
         } else {
             binding.countdownBlocks.setVisibility(View.VISIBLE);
             binding.tvCountdownFinish.setVisibility(View.GONE);
+            stopAnimator(finishPulse);
+            finishPulse = null;
             binding.tvDays.setText(pad(parts.days));
             binding.tvHours.setText(pad(parts.hours));
             binding.tvMinutes.setText(pad(parts.minutes));
             binding.tvSeconds.setText(pad(parts.seconds));
+            binding.countdownBlocks.setContentDescription(getString(R.string.home_countdown_desc,
+                    parts.days, parts.hours, parts.minutes, parts.seconds));
         }
 
         long days = HomeContentResolver.daysSince(content.anniversaryStart, now);
         binding.tvAnniversaryDays.setText(days < 0 ? "--" : String.valueOf(days));
+    }
+
+    private String bannerKey() {
+        return "banner_dismissed_" + role.name();
+    }
+
+    private boolean isBannerDismissed() {
+        return getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(bannerKey(), false);
+    }
+
+    private void startSkeletonPulse() {
+        if (binding == null || skeletonPulse != null || !ValueAnimator.areAnimatorsEnabled()) return;
+        skeletonPulse = ObjectAnimator.ofFloat(binding.skeleton, View.ALPHA, 1f, 0.45f);
+        skeletonPulse.setDuration(800);
+        skeletonPulse.setRepeatMode(ValueAnimator.REVERSE);
+        skeletonPulse.setRepeatCount(ValueAnimator.INFINITE);
+        skeletonPulse.start();
+    }
+
+    /** A gentle heartbeat on the "countdown finished" message. Started once; tick() runs every second. */
+    private void startFinishPulse() {
+        if (binding == null || finishPulse != null || !ValueAnimator.areAnimatorsEnabled()) return;
+        finishPulse = ObjectAnimator.ofPropertyValuesHolder(binding.tvCountdownFinish,
+                PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.08f),
+                PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.08f));
+        finishPulse.setDuration(700);
+        finishPulse.setRepeatMode(ValueAnimator.REVERSE);
+        finishPulse.setRepeatCount(ValueAnimator.INFINITE);
+        finishPulse.start();
+    }
+
+    private static void stopAnimator(ObjectAnimator animator) {
+        if (animator != null) animator.cancel();
     }
 
     private static String pad(long value) {
@@ -233,6 +280,13 @@ public class HomeActivity extends FaithfullyActivity {
             startActivity(new Intent(this, AboutActivity.class));
         } else if (id == R.id.menu_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
+        } else if (id == R.id.menu_logout) {
+            if (signedIn) {
+                showLogoutDialog();
+            } else {
+                AuthHelper.setGuestMode(this, false);
+                goToLogin();
+            }
         }
         return true;
     }

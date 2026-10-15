@@ -19,16 +19,8 @@
             app:titleTextColor="?attr/colorOnSurface"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/ic_logout"
             app:menu="@menu/menu_home"/>
     </com.google.android.material.appbar.AppBarLayout>
-
-    <com.google.android.material.loadingindicator.LoadingIndicator
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/content"
@@ -36,11 +28,95 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:padding="16dp"
+        <!-- Caps the content width on tablets and centers it -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <!-- Loading placeholder, shown until the first settings snapshot -->
+            <LinearLayout
+                android:id="@+id/skeleton"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone"
+                android:importantForAccessibility="no"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintWidth_max="600dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginHorizontal="48dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"/>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginHorizontal="72dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp"/>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardCornerRadius="28dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    android:layout_marginTop="32dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"/>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    android:layout_marginTop="16dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"/>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:baselineAligned="false"
+                    android:layout_marginTop="16dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.Material3.CardView.Filled"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                        android:layout_marginEnd="8dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="110dp"/>
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.Material3.CardView.Filled"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                        android:layout_marginStart="8dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="110dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/content_column"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintWidth_max="600dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/banner_card"
@@ -52,37 +128,109 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/tv_banner"
-                    android:padding="16dp"
-                    android:textColor="?attr/colorOnTertiaryContainer"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tv_banner"
+                        android:paddingVertical="16dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="8dp"
+                        android:textColor="?attr/colorOnTertiaryContainer"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <ImageButton
+                        android:id="@+id/btn_banner_dismiss"
+                        android:src="@drawable/ic_close"
+                        android:contentDescription="@string/home_banner_dismiss"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        app:tint="?attr/colorOnTertiaryContainer"
+                        android:padding="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"/>
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Hero -->
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/tv_title"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
                 android:fontFamily="serif"
                 android:textColor="?attr/colorOnSurface"
-                android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                android:textAppearance="?attr/textAppearanceDisplaySmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/tv_subtitle"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:gravity="center"
                 android:fontFamily="serif"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
 
+            <!-- Days together: the focal point -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Filled"
+                app:cardElevation="0dp"
+                app:cardCornerRadius="28dp"
+                app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                android:layout_marginTop="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingVertical="28dp"
+                    android:paddingHorizontal="16dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tv_anniversary_label"
+                        android:gravity="center"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tv_anniversary_days"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="serif"
+                        android:fontFeatureSettings="tnum"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textAppearance="?attr/textAppearanceDisplayLarge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tv_anniversary_unit"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Countdown -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="16dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
@@ -94,6 +242,7 @@
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/tv_countdown_label"
+                        android:gravity="center"
                         android:textColor="?attr/colorOnSurface"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:layout_width="match_parent"
@@ -101,97 +250,146 @@
 
                     <LinearLayout
                         android:id="@+id/countdown_blocks"
+                        android:focusable="true"
+                        android:importantForAccessibility="noHideDescendants"
                         android:baselineAligned="false"
                         android:orientation="horizontal"
                         android:layout_marginTop="12dp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
-                        <LinearLayout
-                            android:orientation="vertical"
-                            android:gravity="center"
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.Material3.CardView.Filled"
+                            app:cardElevation="0dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
                             android:layout_width="0dp"
                             android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
                             android:layout_height="wrap_content">
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tv_days"
-                                android:textColor="?attr/colorPrimary"
-                                android:textAppearance="?attr/textAppearanceDisplaySmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                            <com.google.android.material.textview.MaterialTextView
-                                android:text="@string/home_days"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textAppearance="?attr/textAppearanceLabelMedium"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                        </LinearLayout>
+                            <LinearLayout
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:paddingVertical="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/tv_days"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:text="@string/home_days"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <LinearLayout
-                            android:orientation="vertical"
-                            android:gravity="center"
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.Material3.CardView.Filled"
+                            app:cardElevation="0dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
                             android:layout_width="0dp"
                             android:layout_weight="1"
+                            android:layout_marginHorizontal="4dp"
                             android:layout_height="wrap_content">
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tv_hours"
-                                android:textColor="?attr/colorPrimary"
-                                android:textAppearance="?attr/textAppearanceDisplaySmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                            <com.google.android.material.textview.MaterialTextView
-                                android:text="@string/home_hours"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textAppearance="?attr/textAppearanceLabelMedium"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                        </LinearLayout>
+                            <LinearLayout
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:paddingVertical="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/tv_hours"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:text="@string/home_hours"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <LinearLayout
-                            android:orientation="vertical"
-                            android:gravity="center"
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.Material3.CardView.Filled"
+                            app:cardElevation="0dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
                             android:layout_width="0dp"
                             android:layout_weight="1"
+                            android:layout_marginHorizontal="4dp"
                             android:layout_height="wrap_content">
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tv_minutes"
-                                android:textColor="?attr/colorPrimary"
-                                android:textAppearance="?attr/textAppearanceDisplaySmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                            <com.google.android.material.textview.MaterialTextView
-                                android:text="@string/home_minutes"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textAppearance="?attr/textAppearanceLabelMedium"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                        </LinearLayout>
+                            <LinearLayout
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:paddingVertical="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/tv_minutes"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:text="@string/home_minutes"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <LinearLayout
-                            android:orientation="vertical"
-                            android:gravity="center"
+                        <com.google.android.material.card.MaterialCardView
+                            style="@style/Widget.Material3.CardView.Filled"
+                            app:cardElevation="0dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
                             android:layout_width="0dp"
                             android:layout_weight="1"
+                            android:layout_marginStart="4dp"
                             android:layout_height="wrap_content">
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tv_seconds"
-                                android:textColor="?attr/colorPrimary"
-                                android:textAppearance="?attr/textAppearanceDisplaySmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                            <com.google.android.material.textview.MaterialTextView
-                                android:text="@string/home_seconds"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textAppearance="?attr/textAppearanceLabelMedium"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                        </LinearLayout>
+                            <LinearLayout
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:paddingVertical="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/tv_seconds"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:text="@string/home_seconds"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/tv_countdown_finish"
                         android:layout_marginTop="12dp"
                         android:gravity="center"
+                        android:drawableTop="@drawable/ic_favorite"
+                        android:drawableTint="?attr/colorPrimary"
+                        android:drawablePadding="8dp"
                         android:textColor="?attr/colorPrimary"
                         android:textAppearance="?attr/textAppearanceTitleLarge"
                         android:visibility="gone"
@@ -200,59 +398,91 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+            <!-- Navigation cards -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginTop="16dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="16dp"
-                    android:layout_width="match_parent"
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_letters"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
                     android:layout_height="wrap_content">
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <ImageView
+                            android:src="@drawable/ic_email"
+                            android:importantForAccessibility="no"
+                            app:tint="?attr/colorOnSecondaryContainer"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_letters"
+                            android:layout_marginTop="12dp"
+                            android:textColor="?attr/colorOnSecondaryContainer"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_letters_desc"
+                            android:textColor="?attr/colorOnSecondaryContainer"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/tv_anniversary_label"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/tv_anniversary_days"
-                        android:layout_marginTop="8dp"
-                        android:textColor="?attr/colorPrimary"
-                        android:textAppearance="?attr/textAppearanceDisplayMedium"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/tv_anniversary_unit"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_letters"
-                android:text="@string/home_letters"
-                android:layout_marginTop="24dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_gallery"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:text="@string/home_gallery"
-                android:layout_marginTop="8dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_gallery"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorTertiaryContainer"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_height="wrap_content">
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <ImageView
+                            android:src="@drawable/ic_gallery"
+                            android:importantForAccessibility="no"
+                            app:tint="?attr/colorOnTertiaryContainer"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_gallery"
+                            android:layout_marginTop="12dp"
+                            android:textColor="?attr/colorOnTertiaryContainer"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_gallery_desc"
+                            android:textColor="?attr/colorOnTertiaryContainer"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
