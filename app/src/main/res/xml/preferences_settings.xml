@@ -30,35 +30,4 @@
             app:summary="@string/prefs_switch_dynamic_color_summary"
             app:widgetLayout="@layout/view_preference_switch"/>
     </PreferenceCategory>
-
-    <!-- Admin only: the two backup categories are hidden for everyone else in SettingsFragment. -->
-    <PreferenceCategory
-        app:key="category_backup"
-        app:title="@string/preference_backup_category_import_export"
-        app:iconSpaceReserved="false">
-
-        <Preference
-            app:key="export"
-            app:iconSpaceReserved="false"
-            app:title="@string/preference_backup_export"
-            app:summary="@string/preference_backup_export_summary"/>
-
-        <Preference
-            app:key="restore"
-            app:iconSpaceReserved="false"
-            app:title="@string/preference_backup_restore"
-            app:summary="@string/preference_backup_restore_summary"/>
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        app:key="category_danger_zone"
-        app:title="@string/preference_backup_category_danger_zone"
-        app:iconSpaceReserved="false">
-
-        <Preference
-            app:key="clear_all"
-            app:iconSpaceReserved="false"
-            app:title="@string/preference_backup_clear_all_data"
-            app:summary="@string/preference_backup_clear_all_data_summary"/>
-    </PreferenceCategory>
 </PreferenceScreen>

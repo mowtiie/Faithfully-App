@@ -28,11 +28,11 @@ public final class VoiceStorageHelper {
         return VoiceFormat.newKey(uid, extension, System.currentTimeMillis(), randomSuffix());
     }
 
-    /** ADMIN may write into any folder (restoring a backup); READER only into their own. */
+    /** Both accounts upload only into their own folder. */
     public static void upload(Context ctx, String key, byte[] audio, String mimeType) throws IOException {
-        AuthHelper.Role role = requireSignedIn(ctx);
+        requireSignedIn(ctx);
         if (!VoiceFormat.isVoiceKey(key)) throw new IllegalArgumentException("Not a voice key: " + key);
-        if (role != AuthHelper.Role.ADMIN && !key.startsWith("voice/" + currentUid() + "/")) {
+        if (!key.startsWith("voice/" + currentUid() + "/")) {
             throw new SecurityException("Recordings can only go in your own folder");
         }
         if (audio.length > VoiceFormat.MAX_BYTES) {

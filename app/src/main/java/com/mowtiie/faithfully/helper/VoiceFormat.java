@@ -42,22 +42,6 @@ public final class VoiceFormat {
         }
     }
 
-    /** Content type to send for a key, matching the file's real format. */
-    public static String mimeForKey(String key) {
-        int dot = key.lastIndexOf('.');
-        String extension = dot < 0 ? "" : key.substring(dot + 1).toLowerCase(Locale.ROOT);
-        switch (extension) {
-            case "webm": return "audio/webm";
-            case "ogg":  return "audio/ogg";
-            default:     return "audio/mp4";
-        }
-    }
-
-    public static String extensionOfKey(String key) {
-        int dot = key.lastIndexOf('.');
-        return dot < 0 ? "" : key.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
     private static String baseType(String mimeType) {
         int semi = mimeType.indexOf(';');
         return (semi < 0 ? mimeType : mimeType.substring(0, semi)).trim().toLowerCase(Locale.ROOT);

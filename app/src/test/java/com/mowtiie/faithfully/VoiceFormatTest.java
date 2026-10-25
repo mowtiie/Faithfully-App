@@ -56,17 +56,4 @@ public class VoiceFormatTest {
         assertNull(VoiceFormat.extensionForMime(null));
     }
 
-    @Test
-    public void mimeForKey_follows_the_extension() {
-        assertEquals("audio/webm", VoiceFormat.mimeForKey("voice/ali/a.webm"));
-        assertEquals("audio/ogg", VoiceFormat.mimeForKey("voice/ali/a.ogg"));
-        assertEquals("audio/mp4", VoiceFormat.mimeForKey("voice/ali/a.m4a"));
-        assertEquals("audio/mp4", VoiceFormat.mimeForKey("voice/ali/a.mp4"));
-    }
-
-    @Test
-    public void extensionOfKey_is_lower_case() {
-        assertEquals("m4a", VoiceFormat.extensionOfKey("voice/ali/a.M4A"));
-        assertEquals("", VoiceFormat.extensionOfKey("voice/ali/noextension"));
-    }
 }
