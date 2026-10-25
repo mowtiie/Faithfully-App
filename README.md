@@ -68,9 +68,15 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 
 ## 📸 Screenshots
 
-| Login | Home | Letters | Dark mode |
+All shown in guest mode, with sample content.
+
+| Login | Home | Letters | Reader |
 |:---:|:---:|:---:|:---:|
-| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
+| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) | ![Reader](metadata/en-US/images/screenshots/reader.jpg) |
+
+| Gallery | Voice | Apps | Dark mode |
+|:---:|:---:|:---:|:---:|
+| ![Gallery](metadata/en-US/images/screenshots/gallery.jpg) | ![Voice](metadata/en-US/images/screenshots/voice.jpg) | ![Apps](metadata/en-US/images/screenshots/apps.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
 
 ---
 
@@ -120,7 +126,7 @@ Certificate fingerprints:
 | **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth): email/password. The same ID token authorizes the Worker |
 | **Local cache** | Android SQLite via `SQLiteOpenHelper` |
 | **Images** | [Glide](https://github.com/bumptech/glide) to load, plus `Bitmap` and `ExifInterface` to resize |
-| **Min SDK** | 24 (Android 7.0+) |
+| **Min SDK** | 30 (Android 11+) |
 | **Companion** | [Faithfully Web](https://github.com/mowtiie/Faithfully-Web), the public website |
 
 ---
