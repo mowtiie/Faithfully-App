@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -19,8 +20,11 @@ import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -37,10 +41,15 @@ import com.mowtiie.faithfully.ui.adapters.VoiceAdapter;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * The website's Voice section. ADMIN and READER read and add recordings; only ADMIN edits or deletes.
@@ -50,13 +59,20 @@ import java.util.Objects;
 public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.OnVoiceActionListener {
 
     private static final long TICK_MS = 250;
+    private static final String ALL = "all";
+
+    private enum Sort { NEWEST, OLDEST, LONGEST, SHORTEST }
 
     private ActivityVoiceBinding binding;
     private FirebaseFirestore db;
 
     private VoiceAdapter adapter;
+    private final List<VoiceClip> allClips = new ArrayList<>();
     private final List<VoiceClip> clips = new ArrayList<>();
     private final Map<String, String> players = new HashMap<>();
+    private String filterUid = ALL;
+    private Sort sort = Sort.NEWEST;
+    private boolean rebuildingChips;
     private AuthHelper.Role role;
     private boolean isAdmin;
 
@@ -106,6 +122,8 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
             ((SimpleItemAnimator) binding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
         }
 
+        setupTools();
+
         if (role == AuthHelper.Role.GUEST) {
             binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(this, role), adapter));
             showMock();
@@ -117,12 +135,11 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     }
 
     private void showMock() {
-        clips.clear();
-        clips.addAll(MockDataLoader.getVoice(this));
+        allClips.clear();
+        allClips.addAll(MockDataLoader.getVoice(this));
         players.clear();
         players.putAll(MockDataLoader.getVoicePlayers(this));
-        adapter.notifyDataSetChanged();
-        binding.tvEmpty.setVisibility(clips.isEmpty() ? View.VISIBLE : View.GONE);
+        applyView(true);
     }
 
     private void loadVoice() {
@@ -141,7 +158,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
                             }
                         }
                     }
-                    adapter.notifyDataSetChanged();
+                    applyView(true);
                 });
 
         db.collection("voice")
@@ -154,10 +171,10 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
                         return;
                     }
 
-                    clips.clear();
+                    allClips.clear();
                     if (snapshots != null) {
                         for (DocumentSnapshot doc : snapshots.getDocuments()) {
-                            clips.add(new VoiceClip(
+                            allClips.add(new VoiceClip(
                                     doc.getId(),
                                     DocFields.string(doc, "audioPath"),
                                     DocFields.string(doc, "caption"),
@@ -169,14 +186,142 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
                     }
 
                     if (playingId != null && !containsClip(playingId)) stopPlayback();
-                    adapter.notifyDataSetChanged();
-                    binding.tvEmpty.setVisibility(clips.isEmpty() ? View.VISIBLE : View.GONE);
+                    applyView(true);
                 });
     }
 
     private boolean containsClip(String id) {
-        for (VoiceClip clip : clips) if (clip.getId().equals(id)) return true;
+        for (VoiceClip clip : allClips) if (clip.getId().equals(id)) return true;
         return false;
+    }
+
+    // ------------------------------------------------------------------
+    //  Filter and sort
+    // ------------------------------------------------------------------
+
+    private void setupTools() {
+        binding.chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (rebuildingChips || checkedIds.isEmpty()) return;
+            Chip chip = group.findViewById(checkedIds.get(0));
+            if (chip == null) return;
+            filterUid = (String) chip.getTag();
+            applyView(false);
+        });
+
+        binding.btnSort.setText(sortLabel());
+        binding.btnSort.setOnClickListener(v -> {
+            PopupMenu menu = new PopupMenu(this, v);
+            menu.inflate(R.menu.menu_voice_sort);
+            menu.getMenu().findItem(sortItemId()).setChecked(true);
+            menu.setOnMenuItemClickListener(item -> {
+                sort = sortFor(item.getItemId());
+                binding.btnSort.setText(sortLabel());
+                applyView(false);
+                return true;
+            });
+            menu.show();
+        });
+    }
+
+    private int sortItemId() {
+        if (sort == Sort.OLDEST)   return R.id.sort_oldest;
+        if (sort == Sort.LONGEST)  return R.id.sort_longest;
+        if (sort == Sort.SHORTEST) return R.id.sort_shortest;
+        return R.id.sort_newest;
+    }
+
+    private Sort sortFor(int itemId) {
+        if (itemId == R.id.sort_oldest)   return Sort.OLDEST;
+        if (itemId == R.id.sort_longest)  return Sort.LONGEST;
+        if (itemId == R.id.sort_shortest) return Sort.SHORTEST;
+        return Sort.NEWEST;
+    }
+
+    private String sortLabel() {
+        if (sort == Sort.OLDEST)   return getString(R.string.voice_sort_oldest);
+        if (sort == Sort.LONGEST)  return getString(R.string.voice_sort_longest);
+        if (sort == Sort.SHORTEST) return getString(R.string.voice_sort_shortest);
+        return getString(R.string.voice_sort_newest);
+    }
+
+    // A clip still waiting for its server timestamp is the newest; sample clips have no date and keep their order.
+    private long createdMillis(VoiceClip clip) {
+        if (clip.getCreatedAt() != null) return clip.getCreatedAt().toDate().getTime();
+        return role == AuthHelper.Role.GUEST ? 0 : Long.MAX_VALUE;
+    }
+
+    private Comparator<VoiceClip> comparator() {
+        switch (sort) {
+            case OLDEST:   return (a, b) -> Long.compare(createdMillis(a), createdMillis(b));
+            case LONGEST:  return (a, b) -> Double.compare(b.getDuration(), a.getDuration());
+            case SHORTEST: return (a, b) -> Double.compare(a.getDuration(), b.getDuration());
+            default:       return (a, b) -> Long.compare(createdMillis(b), createdMillis(a));
+        }
+    }
+
+    // Both accounts always get a chip, even before they have sent anything.
+    private List<String> senders() {
+        Set<String> uids = new LinkedHashSet<>();
+        if (role != AuthHelper.Role.GUEST) {
+            uids.add(AuthHelper.ADMIN_UID);
+            uids.add(AuthHelper.ALI_UID);
+        }
+        uids.addAll(new TreeSet<>(players.keySet()));
+        for (VoiceClip clip : allClips) if (clip.getUid() != null) uids.add(clip.getUid());
+        return new ArrayList<>(uids);
+    }
+
+    private String chipLabel(String uid) {
+        String emoji = players.get(uid);
+        if (emoji != null) return emoji;
+        if (role == AuthHelper.Role.GUEST) return "🎙️";
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        return getString(user != null && uid.equals(user.getUid()) ? R.string.voice_chip_me : R.string.voice_chip_them);
+    }
+
+    private int countFrom(String uid) {
+        int count = 0;
+        for (VoiceClip clip : allClips) if (uid.equals(clip.getUid())) count++;
+        return count;
+    }
+
+    private void rebuildChips(List<String> senders) {
+        rebuildingChips = true;
+        binding.chipGroup.removeAllViews();
+        addChip(ALL, getString(R.string.voice_filter_all, allClips.size()));
+        for (String uid : senders) {
+            addChip(uid, getString(R.string.voice_filter_sender, chipLabel(uid), countFrom(uid)));
+        }
+        rebuildingChips = false;
+    }
+
+    private void addChip(String uid, String text) {
+        Chip chip = (Chip) getLayoutInflater().inflate(R.layout.chip_voice_filter, binding.chipGroup, false);
+        chip.setId(View.generateViewId());
+        chip.setTag(uid);
+        chip.setText(text);
+        chip.setChecked(uid.equals(filterUid));
+        binding.chipGroup.addView(chip);
+    }
+
+    private void applyView(boolean rebuild) {
+        List<String> senders = senders();
+        if (!ALL.equals(filterUid) && !senders.contains(filterUid)) {
+            filterUid = ALL;
+            rebuild = true;
+        }
+        if (rebuild) rebuildChips(senders);
+
+        clips.clear();
+        for (VoiceClip clip : allClips) {
+            if (ALL.equals(filterUid) || filterUid.equals(clip.getUid())) clips.add(clip);
+        }
+        Collections.sort(clips, comparator());
+        adapter.notifyDataSetChanged();
+
+        binding.tools.setVisibility(View.VISIBLE);
+        binding.tvEmpty.setText(allClips.isEmpty() ? R.string.voice_empty : R.string.voice_none_from_sender);
+        binding.tvEmpty.setVisibility(clips.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     // ------------------------------------------------------------------
