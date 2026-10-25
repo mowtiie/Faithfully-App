@@ -46,7 +46,7 @@ android {
     buildTypes {
         debug {
             // Debug builds are auto-signed with the Android debug key
-            // by the Android Gradle Plugin — no extra config needed.
+            // by the Android Gradle Plugin, so no extra config is needed.
         }
 
         release {

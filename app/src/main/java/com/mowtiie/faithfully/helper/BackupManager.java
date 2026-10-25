@@ -640,7 +640,7 @@ public class BackupManager {
                 .setView(input)
                 .setPositiveButton("Delete everything", (d, w) -> {
                     if ("DELETE".equals(input.getText().toString().trim())) doClearAll();
-                    else toast("Confirmation text didn't match — nothing was deleted.");
+                    else toast("Confirmation text didn't match, so nothing was deleted.");
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -654,7 +654,7 @@ public class BackupManager {
                 Map<String, List<Doc>> all = fetchAll(CLEAR_COLLECTIONS);
                 int total = 0;
                 for (List<Doc> docs : all.values()) total += docs.size();
-                if (total == 0) { toast("Nothing to delete — already empty 🌻"); return; }
+                if (total == 0) { toast("Nothing to delete, already empty 🌻"); return; }
 
                 toast("Deleting " + total + " items...");
 

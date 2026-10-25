@@ -4,7 +4,7 @@
 
 ### *The Android app I built to manage her letters, memories, and photos.*
 
-A small Java + XML app that lets me write letters, organize them into chapters, and upload cat photos — all syncing in real time to a public website I built for her. Fully private for the two of us, with a friendly demo mode for everyone else.
+A small Java + XML app that lets me write letters, organize them into chapters, and upload cat photos, all syncing in real time to a public website I built for her. Fully private for the two of us, with a friendly demo mode for everyone else.
 
 **[🌐 Website repo](https://github.com/mowtiie/Faithfully-Web)** · **[🌐 Live site](https://alliyannah.love)**
 
@@ -14,9 +14,9 @@ A small Java + XML app that lets me write letters, organize them into chapters, 
 
 ## 💛 Why I built this
 
-The website I made for her ([Faithfully Web](https://github.com/mowtiie/Faithfully-Web)) needed a way for me to add new letters and photos from anywhere — without editing JSON files or pushing to a repo every time. So I built the admin side: a small Android app, signed in silently as me, that talks to the same Firebase backend the site reads from.
+The website I made for her ([Faithfully Web](https://github.com/mowtiie/Faithfully-Web)) needed a way for me to add new letters and photos from anywhere, without editing JSON files or pushing to a repo every time. So I built the admin side: a small Android app, signed in silently as me, that talks to the same Firebase backend the site reads from.
 
-I picked Java and XML views instead of Kotlin and Compose on purpose — it's the stack I'm most comfortable with from my coursework, and I wanted to focus on the polish of the actual UX rather than fighting a new language while building something personal.
+I picked Java and XML views instead of Kotlin and Compose on purpose. It's the stack I'm most comfortable with from my coursework, and I wanted to focus on the polish of the actual UX rather than fighting a new language while building something personal.
 
 ---
 
@@ -29,38 +29,38 @@ I picked Java and XML views instead of Kotlin and Compose on purpose — it's th
 - 🌙 Light and dark mode, three contrast levels, and optional dynamic color
 
 ### 💌 Letters
-- 📖 Chapters that group letters into eras of our story — add, edit, delete, and reorder
+- 📖 Chapters that group letters into eras of our story: add, edit, delete, and reorder
 - 💌 Letters written with a built-in date picker, assigned to a chapter, and editable later
 - 🔀 Long-press any chapter or letter to drag it into a new position
 - 🏷️ Move a letter to a different chapter, or unassign it entirely
 
 ### 🐱 Gallery
-- 🖼 Photo upload with the system photo picker — no storage permission needed
-- 🪶 Automatic compression — full photo resized to 1920px plus a 400px thumbnail, JPEG-compressed to roughly 10x smaller
+- 🖼 Photo upload with the system photo picker, no storage permission needed
+- 🪶 Automatic compression: full photo resized to 1920px plus a 400px thumbnail, JPEG-compressed to roughly 10x smaller
 - 🔃 EXIF orientation is read so portrait photos don't end up sideways
 - 📝 Optional captions, editable later from the long-press menu
-- ☁️ Photos live on Cloudflare R2, the same place the website serves them from — old Firebase Storage photos still show up
+- ☁️ Photos live on Cloudflare R2, the same place the website serves them from. Old Firebase Storage photos still show up
 - 🗑️ Deleting a photo removes both the full-size image and its thumbnail
 
 ### 💾 Backup & Restore
-- 📦 Export everything — chapters, letters, photos, apps, and home settings — to a single `.zip`
-- ♻️ Restore from a backup — it uses the same zip format as the website's backup
+- 📦 Export everything (chapters, letters, photos, apps, and home settings) to a single `.zip`
+- ♻️ Restore from a backup: it uses the same zip format as the website's backup
 - 🧹 Clear all data behind a type-DELETE-to-confirm step
 - 🔒 Admin only, found in Settings
 
 ### 🔐 Auth & Demo mode
 - 🔑 Email/password sign-in; only the two allow-listed accounts unlock the real content
-- 👑 **Admin** (me) — add, edit, delete, reorder, upload, and back up
-- 🩷 **Reader** (her) — sees everything for real, but read-only, with a soft banner saying so
-- 👀 **Guest** (everyone else) — a demo mode with placeholder chapters, sample letters, and free stock cat photos, so visitors can see the layout without seeing anything personal. It never touches Firebase
+- 👑 **Admin** (me): add, edit, delete, reorder, upload, and back up
+- 🩷 **Reader** (her): sees everything for real, but read-only, with a soft banner saying so
+- 👀 **Guest** (everyone else): a demo mode with placeholder chapters, sample letters, and free stock cat photos, so visitors can see the layout without seeing anything personal. It never touches Firebase
 - 🛡️ Every write is checked twice: the UI hides the buttons, and the code refuses to write unless you're the admin
 
 ### 🧰 Under the hood
 - ⚡ Real-time updates through Firestore listeners that detach with their screen
 - 💾 Chapters are cached in SQLite so the list opens instantly, and the cache is cleared on sign-out so nothing leaks to the next person
-- 🔄 Atomic batch writes for every reorder — no half-updated lists
+- 🔄 Atomic batch writes for every reorder: no half-updated lists
 - 🎨 Material 3 styling with theme-aware colors, so dragged cards lift with a soft color shift
-- 🔒 Two-layer security — client-side role checks plus Firestore and Worker rules that require the admin UID
+- 🔒 Two-layer security: client-side role checks plus Firestore and Worker rules that require the admin UID
 
 ---
 
@@ -115,14 +115,14 @@ Certificate fingerprints:
 | **Language** | Java |
 | **UI** | XML views (no Compose) with Material 3 components |
 | **Database** | [Firebase Firestore](https://firebase.google.com/docs/firestore) (real-time NoSQL) |
-| **Photo storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) behind a small upload Worker — the same one the website uses |
+| **Photo storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) behind a small upload Worker, the same one the website uses |
 | **Legacy storage** | [Firebase Storage](https://firebase.google.com/docs/storage), only for photos uploaded before the move |
-| **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth) — email/password, UID-restricted writes. The same ID token authorizes uploads to the Worker |
+| **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth): email/password, UID-restricted writes. The same ID token authorizes uploads to the Worker |
 | **Local cache** | Android SQLite via `SQLiteOpenHelper` |
 | **Image loading** | [Glide](https://github.com/bumptech/glide) |
 | **Image processing** | Built-in `Bitmap` + AndroidX `ExifInterface` (resize, rotate, JPEG-encode) |
 | **Min SDK** | 24 (Android 7.0+) |
-| **Companion** | [Faithfully Web](https://github.com/mowtiie/Faithfully-Web) — the public website |
+| **Companion** | [Faithfully Web](https://github.com/mowtiie/Faithfully-Web): the public website |
 
 ---
 
@@ -206,7 +206,7 @@ When you tap the upload button:
    - rotated based on EXIF orientation
    - resized to **1920px wide** (full-res) and **400px wide** (thumbnail)
    - JPEG-compressed (quality 85 / 80)
-3. **Two uploads** go to the Worker with my Firebase ID token — `gallery/<time>_<id>.jpg`, then `gallery/thumbs/<time>_<id>.jpg`. If the thumbnail fails, the full image is removed again
+3. **Two uploads** go to the Worker with my Firebase ID token: `gallery/<time>_<id>.jpg`, then `gallery/thumbs/<time>_<id>.jpg`. If the thumbnail fails, the full image is removed again
 4. **Firestore document** created with both public URLs, the two storage keys, an optional caption, and an auto-incremented `order`. If this step fails, the uploaded files are deleted
 5. The website's real-time listener picks it up → the photo appears in the gallery within about a second
 
@@ -229,7 +229,7 @@ If you want to fork it and run your own version:
 
 Release builds read their signing details from a git-ignored `keystore.properties`; without it they build unsigned, which is handy for CI.
 
-Without signing in, you'll still see the app — just guest mode with the placeholder content from `app/src/main/assets/mock_data.json`. The first launch shows the login screen; after you sign in, Firebase keeps the session and the app skips straight to Home.
+Without signing in, you'll still see the app, just guest mode with the placeholder content from `app/src/main/assets/mock_data.json`. The first launch shows the login screen; after you sign in, Firebase keeps the session and the app skips straight to Home.
 
 ---
 
@@ -237,11 +237,11 @@ Without signing in, you'll still see the app — just guest mode with the placeh
 
 - How to combine a real-time cloud database with a local SQLite cache without conflict
 - Building drag-and-drop reorder with `ItemTouchHelper` and committing the result as a Firestore batch write so it's atomic
-- That offline-first UI feels noticeably better — chapters appear from cache instantly while Firestore catches up
+- That offline-first UI feels noticeably better: chapters appear from cache instantly while Firestore catches up
 - Material 3's color system (`MaterialColors.getColor()`) makes themed drag states elegant in just a few lines
 - How to design a clean three-role auth flow (admin, reader, guest) where the UI and the backend rules both enforce permissions
-- How to do image processing right — EXIF rotation, `inSampleSize`, JPEG quality tradeoffs, dual-size uploads for thumbnails
-- That a shared storage layer is worth it — letting a small Worker check the same Firebase ID token meant no secrets in the app
+- How to do image processing right: EXIF rotation, `inSampleSize`, JPEG quality tradeoffs, dual-size uploads for thumbnails
+- That a shared storage layer is worth it: letting a small Worker check the same Firebase ID token meant no secrets in the app
 
 ---
 
