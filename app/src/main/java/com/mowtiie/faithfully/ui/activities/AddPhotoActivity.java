@@ -21,6 +21,7 @@ import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityAddPhotoBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.PhotoStorageHelper;
+import com.mowtiie.faithfully.helper.StorageException;
 import com.mowtiie.faithfully.util.ImageUtil;
 
 import java.io.IOException;
@@ -102,7 +103,7 @@ public class AddPhotoActivity extends FaithfullyActivity {
                         PhotoStorageHelper.upload(this, fullBytes, thumbBytes);
 
                 runOnUiThread(() -> saveFirestoreDoc(uploaded));
-            } catch (PhotoStorageHelper.StorageException e) {
+            } catch (StorageException e) {
                 runOnUiThread(() -> onUploadError(e));
             } catch (IOException e) {
                 runOnUiThread(() -> {
