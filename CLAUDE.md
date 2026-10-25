@@ -16,7 +16,7 @@ An Android app for managing content on the Faithfully-Web sister project. Java +
 - **`READER`**: signed in as Ali's UID. Reads real Firestore data. **No writes, with one deliberate exception: she can record voice clips for herself** (`AddVoiceActivity`, see "Voice"). No edit affordances. Shows a "🩷 Signed in (read-only)" banner via `NoticeAdapter` (not on the Voice screen, where she can add).
 - **`GUEST`**: everyone else (not signed in, or signed in as a non-allowlisted UID). Sees mock data loaded from `assets/mock_data.json` by `MockDataLoader`. No writes. Shows a "👀 Demo mode (showing sample content)" banner.
 
-Every activity that displays data reads `role = AuthHelper.currentRole()` in `onCreate` and branches:
+Every screen that displays data (fragment or activity) reads `role = AuthHelper.currentRole()` once when it is created and branches:
 - `role == ADMIN` → Firestore + write UI enabled
 - `role == READER` → Firestore + read-only UI (NoticeAdapter banner)
 - `role == GUEST` → MockDataLoader + read-only UI (NoticeAdapter banner)
@@ -28,35 +28,50 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 ## Package structure
 
 - `com.mowtiie.faithfully.ui.activities.*`: Activities (extend `FaithfullyActivity` base)
+- `com.mowtiie.faithfully.ui.fragments.*`: The sections shown inside `MainActivity`
 - `com.mowtiie.faithfully.ui.adapters.*`: RecyclerView adapters
 - `com.mowtiie.faithfully.data.*`: POJO models (Chapter, Card, Photo, VoiceClip)
 - `com.mowtiie.faithfully.helper.*`: AuthHelper, ChapterDbHelper, NetworkHelper, MockDataLoader, WorkerClient (Cloudflare Worker calls), PhotoStorageHelper, VoiceStorageHelper, VoiceFormat, ReaderSession, GallerySession
 
-## Activity map
+## Navigation
 
-| Activity | Purpose | Role branching |
-|---|---|---|
-| `LoginActivity` | Email/password sign-in + "Continue as Guest" | Rejects non-allowlisted UIDs silently |
-| `HomeActivity` | Landing screen after login: title, countdown, day counter | ADMIN/READER read `settings/home`; GUEST sample content |
-| `MainActivity` | Chapters list (opened from Home) | Branches by role |
-| `CardsActivity` | Cards inside a chapter | Branches by role |
-| `GalleryActivity` | Photo grid + lightbox trigger | Branches by role |
-| `AddChapterActivity` / `AddCardActivity` | CRUD screens | Admin only (implicit, since non-admins can't get here) |
-| `AddPhotoActivity` | Choose up to 20 photos, a caption each, upload with per-photo status and retry | Admin only |
-| `VoiceActivity` | Voice clips list with playback | ADMIN edits/deletes; READER plays and records; GUEST sample clips, playback off |
-| `AddVoiceActivity` | Record, preview, caption and save a clip | ADMIN and READER only |
-| `ReaderActivity` | Full-screen letter reader: swipe or Previous/Next through a chapter's letters, progress bar, "Back to chapter" on the last one | All roles. READER and GUEST open it by tapping a letter; ADMIN uses the Read button on the expanded card (tapping expands it for the edit actions) |
-| `PhotoViewerActivity` | Full-screen photos you swipe through, with a "3 of 12" counter | All roles |
-| `SettingsActivity` | App preferences (theme, contrast, dynamic color) | Any role |
-| `AboutActivity` | App info | Any role |
+One host activity and a navigation drawer. `MainActivity` holds the toolbar, a `DrawerLayout` + `NavigationView` (`menu_drawer.xml`) and a `NavHostFragment` driven by `res/navigation/nav_graph.xml` (Navigation 2.9). The drawer lists Home, Chapters, Gallery, Voice, Settings, About and Sign in/out; the header shows the role.
+
+- **Top-level destinations** (hamburger icon, no Back arrow) are listed in the `AppBarConfiguration` in `MainActivity`. To add a section, add it there, in the nav graph and in `menu_drawer.xml` using the same id (`xxxFragment`).
+- `cardsFragment` (the letters of one chapter) is not in the drawer. It takes `chapter_id` and `chapter_title` arguments, its label is `{chapter_title}`, and the drawer keeps Chapters highlighted while it is open.
+- **Up is Back.** `FaithfullyActivity.onSupportNavigateUp()` calls the back dispatcher, so the Back arrow in the form screens returns to wherever the user came from. The host overrides it with `NavigationUI.navigateUp`. Manifest `parentActivityName` values only point at `MainActivity`.
+- **Drawer back priority:** `MainActivity.drawerBack` is registered after the NavHostFragment and is enabled only while the drawer is open, so Back closes the drawer first.
+- Sign out and Sign in (guest) are drawer actions handled by `MainActivity`, not destinations.
+- Toolbar menus belong to the fragment: register a `MenuProvider` on the activity with the view lifecycle (see `VoiceFragment`).
+
+## Screen map
+
+| Screen | Kind | Purpose | Role branching |
+|---|---|---|---|
+| `LoginActivity` | Activity | Email/password sign-in + "Continue as Guest" | Rejects non-allowlisted UIDs silently |
+| `MainActivity` | Activity | The drawer host | Shows the role in the drawer header |
+| `HomeFragment` | Fragment | A simple welcome: title, countdown, day counter | ADMIN/READER read `settings/home`; GUEST sample content |
+| `ChaptersFragment` | Fragment | Chapters list | Branches by role |
+| `CardsFragment` | Fragment | Letters inside a chapter | Branches by role |
+| `GalleryFragment` | Fragment | Photo grid + viewer trigger | Branches by role |
+| `VoiceFragment` | Fragment | Voice clips list with playback, filter and sort in the top bar | ADMIN edits/deletes; READER plays and records; GUEST sample clips, playback off |
+| `SettingsFragment` | Fragment | App preferences (theme, contrast, dynamic color) | Any role |
+| `AboutFragment` | Fragment | App info | Any role |
+| `AddChapterActivity` / `AddCardActivity` | Activity | CRUD screens | Admin only (implicit, since non-admins can't get here) |
+| `AddPhotoActivity` | Activity | Choose up to 20 photos, a caption each, upload with per-photo status and retry | Admin only |
+| `AddVoiceActivity` | Activity | Record, preview, caption and save a clip | ADMIN and READER only |
+| `ReaderActivity` | Activity | Full-screen letter reader: swipe or Previous/Next through a chapter's letters, progress bar, "Back to chapter" on the last one | All roles. READER and GUEST open it by tapping a letter; ADMIN uses the Read button on the expanded card (tapping expands it for the edit actions) |
+| `PhotoViewerActivity` | Activity | Full-screen photos you swipe through, with a "3 of 12" counter | All roles |
+
+The forms, the reader and the photo viewer stay separate activities on purpose (full screen, own Back behavior).
 
 ## Key architectural patterns
 
-- **View binding** everywhere. No `findViewById` in Activities.
-- **EdgeToEdge + WindowInsetsCompat** in every Activity's `onCreate`. Follow the existing pattern.
+- **View binding** everywhere. In fragments, inflate in `onCreateView` and set `binding = null` in `onDestroyView`.
+- **EdgeToEdge + WindowInsetsCompat** in every Activity's `onCreate`. Follow the existing pattern. Inside the host, `MainActivity` applies the side and bottom insets once, so fragments do not.
 - **`FaithfullyActivity` base class** for every activity: it applies the user's contrast and dynamic-colour settings. New activities must extend it, not `AppCompatActivity`.
 - **Auto Backup** excludes the chapter cache database (`backup_rules.xml`, `data_extraction_rules.xml`). Keep private content out of it.
-- **Firestore listeners** in activities use `addSnapshotListener(this, ...)` so they detach with the activity (Home registers/removes its own in `onStart`/`onStop`).
+- **Firestore listeners** in activities use `addSnapshotListener(this, ...)` so they detach with the activity. In fragments keep the `ListenerRegistration` and remove it in `onDestroyView` (Home registers/removes its own in `onStart`/`onStop`), and return early in the callback when `binding == null`. Never pass a fragment to `addSnapshotListener`.
 - **Read Firestore fields with `DocFields`**, not `getTimestamp`/`getString`/`getLong`: the typed getters throw if a field holds another type (e.g. a date saved as milliseconds), which crashes the whole list.
 - **`ConcatAdapter` + `NoticeAdapter`**: used to prepend a read-only banner to lists in READER and GUEST modes. Adapter is instantiated with the message string.
 - **`ChapterDbHelper` SQLite cache**: only for chapters. Cards and photos rely on Firestore's built-in offline persistence.
@@ -100,40 +115,40 @@ All photo writes go through `helper/PhotoStorageHelper` (blocking; call off the 
 Mirrors the website's Voice section (`js/voice.js`, `js/voice-recorder.js`).
 
 - **Data:** Firestore `voice/{id}`: `{ audioPath, caption, duration (seconds), mimeType, size, uid, createdAt (server timestamp) }`. `audioPath` is `voice/<uid>/<ts>_<rand6>.<webm|m4a|mp4|ogg>` in a **private** R2 bucket (no public URL). Read with `DocFields` into `VoiceClip` by hand (no `toObject`, so no ProGuard rule). The sender emoji comes from `settings/draw.players[uid]`.
-- **Roles:** ADMIN and READER read, play and add (`AddVoiceActivity`); only ADMIN edits the caption or deletes (guarded in `VoiceActivity`, the Worker and the Firestore rules). GUEST sees the sample clips from `mock_data.json` (`voice`, `voicePlayers`), with playback off.
+- **Roles:** ADMIN and READER read, play and add (`AddVoiceActivity`); only ADMIN edits the caption or deletes (guarded in `VoiceFragment`, the Worker and the Firestore rules). GUEST sees the sample clips from `mock_data.json` (`voice`, `voicePlayers`), with playback off.
 - **Creating a clip must match the Firestore rule exactly:** exactly the seven fields above, `uid == auth.uid`, `audioPath` under the sender's own `voice/<uid>/` folder, `caption` a string (use `""`, never null), `createdAt` from `FieldValue.serverTimestamp()` (not `Timestamp.now()`).
 - **Recording:** `MediaRecorder` to AAC in `.m4a` (`audio/mp4`, plays in every browser), mono, 48 kbps, hard cap `VoiceFormat.MAX_SECONDS` (90 s) and `MAX_BYTES` (2 MB, the Worker's limit). Needs the `RECORD_AUDIO` runtime permission. Recording stops if the screen is left.
 - **Worker rules for `voice/` keys:** `PUT` any approved account into its own folder (the app only ever uses its own; the website's restore lets the admin write any folder); `GET` any approved account; `DELETE` admin only; first bytes must be real WebM/MP4/Ogg audio.
-- **Playback:** `VoiceStorageHelper.download` fetches the file through the Worker into `cacheDir/voice/` and `VoiceActivity` plays it with one `MediaPlayer`. The cache is cleared by `AuthHelper.signOutEverything`.
+- **Playback:** `VoiceStorageHelper.download` fetches the file through the Worker into `cacheDir/voice/` and `VoiceFragment` plays it with one `MediaPlayer`. The cache is cleared by `AuthHelper.signOutEverything`.
 - **Delete order:** file first (Worker), then the document, so a failure can be retried. If the Firestore write fails after an upload, the new file is deleted best-effort (only the admin can; for Ali it is left behind).
 - Pure helpers (keys, MIME/extension, clock text) are in `VoiceFormat`, unit-tested in `VoiceFormatTest`.
-- **Filter and sort** (mirrors the website): filter chips (All plus one per sender, with counts; both accounts always get a chip) and a sort menu (newest, oldest, longest, shortest). `VoiceActivity` keeps the full list in `allClips` and a filtered, sorted copy in `clips` (the adapter's list); a clip still waiting for its server timestamp counts as the newest. Chips read the sender emoji from `settings/draw.players`, falling back to "Me" / "Them".
+- **Filter and sort** (mirrors the website): two menus in the top app bar (`menu_voice.xml`). Filter lists All plus one entry per sender, with counts; both accounts always get an entry, and the entries are rebuilt in `onPrepareMenu`. Sort is newest, oldest, longest or shortest. `VoiceFragment` keeps the full list in `allClips` and a filtered, sorted copy in `clips` (the adapter's list), and calls `invalidateOptionsMenu()` after each change; a clip still waiting for its server timestamp counts as the newest. Entries read the sender emoji from `settings/draw.players`, falling back to "Me" / "Them".
 
 ## Reader and photo viewer
 
-- Both are fed through small in-memory holders instead of Intent extras, because a chapter of letters can be larger than the Intent limit: `ReaderSession` (set by `CardsActivity.onRead`) and `GallerySession` (set by `GalleryActivity.onTap`). Mirrors the website's `js/letter-store.js`. If the holder is empty (process death) the reader finishes and the viewer falls back to the single `image_url` extra.
+- Both are fed through small in-memory holders instead of Intent extras, because a chapter of letters can be larger than the Intent limit: `ReaderSession` (set by `CardsFragment.onRead`) and `GallerySession` (set by `GalleryFragment.onTap`). Mirrors the website's `js/letter-store.js`. If the holder is empty (process death) the reader finishes and the viewer falls back to the single `image_url` extra.
 - Both use `ViewPager2` (it comes in through the Material dependency).
 - Set toolbar titles through `getSupportActionBar()`, not `binding.toolbar.setTitle`: after `setSupportActionBar` the toolbar title is reset to the app name.
 - Not done yet compared with the website: next-chapter at the end of the reader, print, and pinch-to-zoom in the photo viewer.
 
 ## Adding photos
 
-`AddPhotoActivity` (admin only) mirrors the website's photo dialog: pick up to 20 photos at once (`PickMultipleVisualMedia`), a caption for each, then they are compressed, uploaded and saved one after another with a status per photo (`PendingPhotoAdapter`). A photo that fails keeps its place and can be retried without redoing the others; each photo rolls back its own R2 files if its Firestore write fails (see "R2 photo storage"). The next `order` is read once, then incremented per saved photo. Captions and removal are locked while uploading.
+`AddPhotoActivity` (admin only, opened from the Gallery's add button) mirrors the website's photo dialog: pick up to 20 photos at once (`PickMultipleVisualMedia`), a caption for each, then they are compressed, uploaded and saved one after another with a status per photo (`PendingPhotoAdapter`). A photo that fails keeps its place and can be retried without redoing the others; each photo rolls back its own R2 files if its Firestore write fails (see "R2 photo storage"). The next `order` is read once, then incremented per saved photo. Captions and removal are locked while uploading.
 
 ## Home screen
 
-`HomeActivity` is where login lands; the chapters list (`MainActivity`) is one tap away ("Letters"). It mirrors the website's `js/home.js`, read-only for every role:
+`HomeFragment` is the start destination (login lands on `MainActivity`, which opens it); every other section is one tap away in the drawer. It is a simple welcome and mirrors the website's `js/home.js`, read-only for every role:
 
 - Sample text lives in the `home` block of `assets/mock_data.json` (loaded by `MockDataLoader.getHomeDefaults`, same strings as the website's `HOME_MOCK`; hardcoded fallback in `HomeContentResolver.Text.fallback()`).
 - ADMIN/READER watch `settings/home` (`{ title, subtitle, countdownLabel, countdownFinish, anniversaryLabel, anniversaryUnit, countdownTarget, anniversaryStart }`); a non-empty string replaces the sample text. Content stays hidden until the first snapshot. The listener is attached in `onStart` and removed in `onStop`.
 - GUEST never queries Firestore. Their day counter counts from the first time they opened Home (`home_prefs`, like the website's `demoFirstVisit`).
 - All merge/countdown/day-count logic is in `helper/HomeContentResolver` (pure Java, unit-tested in `HomeContentResolverTest`). Parse the Firestore doc by hand into `HomeContentResolver.Settings`. There is no model class, so no ProGuard rule.
-- Sign-out / back-to-login intents use `NEW_TASK | CLEAR_TASK` so Home isn't left on the back stack. Gallery, About and Settings now have Home as their parent activity.
+- Sign out and back-to-login use `NEW_TASK | CLEAR_TASK` so the host is not left on the back stack.
 
 ## Known gaps
 
-- A few dialogs/sheets use `findViewById` (`GalleryActivity`, `CardsActivity`).
-- Voice playback and recording, and every admin-only screen (multi-photo upload), have only been compile-, unit-test- and R8-checked, not run signed in. `minSdk` was raised from 24 to 30, which also removed the old `NewApi` lint errors from `HomeActivity.areAnimatorsEnabled()` (API 26).
+- A few dialogs/sheets use `findViewById` (`GalleryFragment`, `CardsFragment`, `VoiceFragment`).
+- Voice playback and recording, and every admin-only screen (multi-photo upload), have only been compile-, unit-test- and R8-checked, not run signed in. `minSdk` was raised from 24 to 30, which also removed the old `NewApi` lint errors from `ValueAnimator.areAnimatorsEnabled()` in `HomeFragment` (API 26).
 
 ## Firestore ProGuard warnings
 
@@ -144,7 +159,7 @@ Model classes (`Chapter`, `Card`, `Photo`) MUST be preserved by ProGuard because
 - File: `app/src/main/assets/mock_data.json`
 - Loader: `MockDataLoader` (lazy, cached in memory after first read)
 - Structure: `{ "home": {...}, "chapters": [...], "cards": [...], "gallery": [...], "voicePlayers": {...}, "voice": [...] }`. It matches the website's `MOCK_CHAPTERS` / `MOCK_CARDS` / `MOCK_GALLERY` / `MOCK_VOICE` in `js/data/mock.js` (Faithfully-Web). Keep the chapter/card/voice text in sync with that file.
-- GUEST on `MainActivity`, `CardsActivity` and `GalleryActivity` loads from the loader and never touches Firestore or the SQLite chapter cache (`showMock()` in each). The getters return copies sorted by `order`.
+- GUEST on `ChaptersFragment`, `CardsFragment`, `GalleryFragment` and `VoiceFragment` loads from the loader and never touches Firestore or the SQLite chapter cache (`showMock()` in each). The getters return copies sorted by `order`.
 - `AuthHelper.signOutEverything` clears the `ChapterDbHelper` cache so a later guest never sees a previous session's chapters.
 - READER and GUEST get a `NoticeAdapter.forRole(ctx, role)` banner on those three screens (text in `strings.xml`: `notice_reader`, `notice_guest`). The Gallery grid gives it a full-width span.
 - To update mock content, edit this JSON file. Loader's cache resets on process restart, not per-Activity.

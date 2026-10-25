@@ -22,7 +22,12 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 
 ## ✨ Features
 
+### 🧭 Navigation
+- ☰ A navigation drawer with Home, Chapters, Gallery, Voice, Settings and About, and your role shown at the top
+- ↩️ Back always returns to where you came from
+
 ### 🏠 Home
+- 👋 A simple welcome screen
 - 🎂 Live countdown to the second, and a days-together counter
 - 🌻 Text and dates come from the same `settings/home` document the website reads, so the two always agree
 - 🌙 Light and dark mode, three contrast levels, and optional dynamic color
@@ -44,7 +49,7 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 ### 🎙️ Voice
 - 🎤 Record a short voice message (up to 90 seconds), preview it, add a caption, and send
 - 🐝🌻 Each message shows who sent it, and either of us can record
-- 🏷️ Filter chips for who sent it, and a sort menu: newest, oldest, longest or shortest
+- 🏷️ Filter by who sent it and sort by newest, oldest, longest or shortest, from the menus in the top bar
 - 🔒 Recordings are private: they play through a signed-in request, never from a public link
 - 🗑️ Only the admin can edit a caption or delete a message
 
@@ -66,13 +71,13 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 
 All shown in guest mode, with sample content.
 
-| Login | Home | Letters | Reader |
+| Login | Home | Drawer | Letters |
 |:---:|:---:|:---:|:---:|
-| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) | ![Reader](metadata/en-US/images/screenshots/reader.jpg) |
+| ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Drawer](metadata/en-US/images/screenshots/drawer.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) |
 
-| Gallery | Voice | Dark mode |
-|:---:|:---:|:---:|
-| ![Gallery](metadata/en-US/images/screenshots/gallery.jpg) | ![Voice](metadata/en-US/images/screenshots/voice.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
+| Reader | Gallery | Voice | Dark mode |
+|:---:|:---:|:---:|:---:|
+| ![Reader](metadata/en-US/images/screenshots/reader.jpg) | ![Gallery](metadata/en-US/images/screenshots/gallery.jpg) | ![Voice](metadata/en-US/images/screenshots/voice.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
 
 ---
 
@@ -116,7 +121,7 @@ Certificate fingerprints:
 
 | Layer | What I used |
 |---|---|
-| **Language & UI** | Java, XML views (no Compose), and Material 3 components |
+| **Language & UI** | Java, XML views (no Compose), Material 3 components, and a single-activity layout with a navigation drawer and fragments ([Navigation](https://developer.android.com/guide/navigation)) |
 | **Database** | [Firebase Firestore](https://firebase.google.com/docs/firestore) (real-time NoSQL) |
 | **File storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) behind a small upload Worker, the same one the website uses (older photos still on [Firebase Storage](https://firebase.google.com/docs/storage)) |
 | **Auth** | [Firebase Auth](https://firebase.google.com/docs/auth): email/password. The same ID token authorizes the Worker |
