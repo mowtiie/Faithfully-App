@@ -37,6 +37,15 @@
             android:exported="false"
             android:parentActivityName=".ui.activities.HomeActivity" />
         <activity
+            android:name=".ui.activities.AddAppActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.AppsActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.AppsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.HomeActivity" />
+        <activity
             android:name=".ui.activities.ReaderActivity"
             android:exported="false"
             android:parentActivityName=".ui.activities.CardsActivity" />

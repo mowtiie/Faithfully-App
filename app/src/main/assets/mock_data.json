@@ -93,5 +93,30 @@
     { "id": "mock-v-1", "uid": "mock-a", "caption": "A sample good morning",                         "duration": 12 },
     { "id": "mock-v-2", "uid": "mock-b", "caption": "Another sample, just to show the layout",       "duration": 27 },
     { "id": "mock-v-3", "uid": "mock-a", "caption": "Real recordings are only for the two of us 🌻", "duration": 8 }
+  ],
+
+  "apps": [
+    {
+      "id": "builtin-1", "order": 0,
+      "name": "Faithful",
+      "tagline": "Quick notes for the thoughts you don't want to forget",
+      "description": "I know that you've been struggling with your short-term memory, Ali. So I made something for you, something that will help you quickly and easily write down your thoughts so you won't forget about them ever again. 🩵",
+      "icon": "🩷",
+      "iconImage": "./icons/faithful.png",
+      "version": "v1.0",
+      "downloadUrl": "./apps/Faithful.apk",
+      "sourceUrl": "https://github.com/mowtiie/Faithful"
+    },
+    {
+      "id": "builtin-2", "order": 1,
+      "name": "Faithfully",
+      "tagline": "Your written thoughts, gently coming back to you",
+      "description": "Because some thoughts deserve to be revisited, not just remembered. Faithfully is a quiet companion to Faithful — a place where the little notes you've written can come back to you gently, in the moments you'd love to hear them again. Made so you'll never feel like anything you felt is lost. 🌻",
+      "icon": "🌻",
+      "iconImage": "./icons/faithfully.png",
+      "version": "v1.0",
+      "downloadUrl": "./apps/Faithfully.apk",
+      "sourceUrl": "https://github.com/mowtiie/Faithfully-App"
+    }
   ]
 }

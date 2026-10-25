@@ -483,36 +483,38 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btn_voice"
-                style="@style/Widget.Material3.CardView.Filled"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                android:clickable="true"
-                android:focusable="true"
+            <LinearLayout
+                android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginTop="16dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-                <LinearLayout
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <ImageView
-                        android:src="@drawable/ic_mic"
-                        android:importantForAccessibility="no"
-                        app:tint="?attr/colorOnSurface"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"/>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_voice"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:layout_height="match_parent">
                     <LinearLayout
                         android:orientation="vertical"
-                        android:layout_marginStart="16dp"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
+                        android:padding="16dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content">
+                        <ImageView
+                            android:src="@drawable/ic_mic"
+                            android:importantForAccessibility="no"
+                            app:tint="?attr/colorOnSurface"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"/>
                         <com.google.android.material.textview.MaterialTextView
                             android:text="@string/home_voice"
+                            android:layout_marginTop="12dp"
                             android:textColor="?attr/colorOnSurface"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:layout_width="wrap_content"
@@ -524,8 +526,46 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"/>
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_apps"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_height="match_parent">
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <ImageView
+                            android:src="@drawable/ic_apps"
+                            android:importantForAccessibility="no"
+                            app:tint="?attr/colorOnSurface"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_apps"
+                            android:layout_marginTop="12dp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:text="@string/home_apps_desc"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

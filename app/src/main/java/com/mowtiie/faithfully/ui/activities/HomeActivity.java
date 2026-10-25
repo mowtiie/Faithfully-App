@@ -100,6 +100,7 @@ public class HomeActivity extends FaithfullyActivity {
         binding.btnChapters.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
         binding.btnGallery.setOnClickListener(v -> startActivity(new Intent(this, GalleryActivity.class)));
         binding.btnVoice.setOnClickListener(v -> startActivity(new Intent(this, VoiceActivity.class)));
+        binding.btnApps.setOnClickListener(v -> startActivity(new Intent(this, AppsActivity.class)));
 
         render();
     }
