@@ -33,6 +33,7 @@ import com.mowtiie.faithfully.data.Photo;
 import com.mowtiie.faithfully.databinding.ActivityGalleryBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.DocFields;
+import com.mowtiie.faithfully.helper.GallerySession;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.PhotoStorageHelper;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
@@ -210,7 +211,9 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
 
     @Override
     public void onTap(Photo photo) {
+        GallerySession.set(photoList);
         Intent intent = new Intent(this, PhotoViewerActivity.class);
+        intent.putExtra(PhotoViewerActivity.EXTRA_INDEX, Math.max(0, photoList.indexOf(photo)));
         intent.putExtra("image_url", photo.getImageUrl());
         intent.putExtra("caption",   photo.getCaption());
         startActivity(intent);
