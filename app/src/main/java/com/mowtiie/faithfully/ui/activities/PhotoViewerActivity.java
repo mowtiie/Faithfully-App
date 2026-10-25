@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * Full-screen photos you swipe through, like the website's lightbox. The photos come from
- * {@link GallerySession}, set by GalleryActivity; opened with only an image URL it shows that one.
+ * {@link GallerySession}, set by GalleryFragment; opened with only an image URL it shows that one.
  */
 public class PhotoViewerActivity extends FaithfullyActivity {
 

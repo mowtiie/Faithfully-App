@@ -30,4 +30,9 @@
             app:argType="string"
             app:nullable="true" />
     </fragment>
+
+    <fragment
+        android:id="@+id/galleryFragment"
+        android:name="com.mowtiie.faithfully.ui.fragments.GalleryFragment"
+        android:label="@string/title_gallery" />
 </navigation>

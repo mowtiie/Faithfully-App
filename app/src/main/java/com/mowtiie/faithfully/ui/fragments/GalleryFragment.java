@@ -1,41 +1,42 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.ui.fragments;
 
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.storage.FirebaseStorage;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Photo;
-import com.mowtiie.faithfully.databinding.ActivityGalleryBinding;
+import com.mowtiie.faithfully.databinding.FragmentGalleryBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.GallerySession;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.PhotoStorageHelper;
+import com.mowtiie.faithfully.ui.activities.AddPhotoActivity;
+import com.mowtiie.faithfully.ui.activities.PhotoViewerActivity;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 import com.mowtiie.faithfully.ui.adapters.PhotoAdapter;
 
@@ -46,9 +47,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.OnPhotoActionListener {
+public class GalleryFragment extends Fragment implements PhotoAdapter.OnPhotoActionListener {
 
-    private ActivityGalleryBinding binding;
+    private FragmentGalleryBinding binding;
+    private ListenerRegistration registration;
     private FirebaseFirestore db;
     private FirebaseStorage storage;
 
@@ -59,38 +61,33 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
     private boolean isAdmin;
     private AuthHelper.Role role;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        binding = ActivityGalleryBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        binding = FragmentGalleryBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        role = AuthHelper.currentRole(this);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        Context ctx = requireContext();
+        role = AuthHelper.currentRole(ctx);
         isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
         storage = FirebaseStorage.getInstance();
 
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
         if (!isAdmin) {
             binding.fabAdd.hide();
         } else {
-            binding.fabAdd.setOnClickListener(v -> startActivity(new Intent(this, AddPhotoActivity.class)));
+            binding.fabAdd.setOnClickListener(v -> startActivity(new Intent(ctx, AddPhotoActivity.class)));
         }
 
         photoList = new ArrayList<>();
-        adapter = new PhotoAdapter(this, photoList, this, isAdmin);
+        adapter = new PhotoAdapter(ctx, photoList, this, isAdmin);
 
-        GridLayoutManager glm = new GridLayoutManager(this, 2);
+        GridLayoutManager glm = new GridLayoutManager(ctx, 2);
         binding.recyclerView.setLayoutManager(glm);
 
         if (isAdmin) {
@@ -104,7 +101,7 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
                     return position == 0 ? 2 : 1;
                 }
             });
-            binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(this, role), adapter));
+            binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(ctx, role), adapter));
         }
 
         if (role == AuthHelper.Role.GUEST) {
@@ -115,10 +112,20 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
         loadPhotos();
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (registration != null) {
+            registration.remove();
+            registration = null;
+        }
+        binding = null;
+    }
+
     // Guests see the sample photos and never touch Firestore.
     private void showMock() {
         photoList.clear();
-        photoList.addAll(MockDataLoader.getGallery(this));
+        photoList.addAll(MockDataLoader.getGallery(requireContext()));
         adapter.notifyDataSetChanged();
         binding.tvEmpty.setVisibility(photoList.isEmpty() ? View.VISIBLE : View.GONE);
     }
@@ -175,13 +182,14 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
     private void loadPhotos() {
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        db.collection("gallery")
+        registration = db.collection("gallery")
                 .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener(this, (snapshots, error) -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (binding == null) return;
                     binding.progressBar.setVisibility(View.GONE);
 
                     if (error != null) {
-                        Toast.makeText(this, "Error: " + error.getMessage(),
+                        Toast.makeText(requireContext(), "Error: " + error.getMessage(),
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -212,7 +220,7 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
     @Override
     public void onTap(Photo photo) {
         GallerySession.set(photoList);
-        Intent intent = new Intent(this, PhotoViewerActivity.class);
+        Intent intent = new Intent(requireContext(), PhotoViewerActivity.class);
         intent.putExtra(PhotoViewerActivity.EXTRA_INDEX, Math.max(0, photoList.indexOf(photo)));
         intent.putExtra("image_url", photo.getImageUrl());
         intent.putExtra("caption",   photo.getCaption());
@@ -225,13 +233,13 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
             return;
         }
 
-        View editCaptionView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_caption, null);
+        View editCaptionView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_caption, null);
         TextInputEditText inputCaption = editCaptionView.findViewById(R.id.input_caption);
         String currentCaption = photo.getCaption() != null ? photo.getCaption() : "";
         inputCaption.setText(currentCaption);
         inputCaption.setSelection(currentCaption.length());
 
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Edit Caption")
                 .setView(editCaptionView)
                 .setNegativeButton("Cancel", null)
@@ -242,8 +250,8 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
             String newCaption = Objects.requireNonNull(inputCaption.getText()).toString().trim();
             db.collection("gallery").document(photo.getId())
                     .update("caption", newCaption.isEmpty() ? null : newCaption)
-                    .addOnSuccessListener(unused -> Toast.makeText(GalleryActivity.this, "Caption updated", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(GalleryActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Caption updated", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
             alertDialog.dismiss();
         }));
         alertDialog.show();
@@ -255,7 +263,7 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
             return;
         }
 
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Delete photo")
                 .setMessage(PhotoStorageHelper.isHosted(photo.getImageUrl())
                         ? "The photo and its thumbnail will be removed for good."
@@ -276,7 +284,7 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
             batch.update(db.collection("gallery").document(reordered.get(i).getId()), "order", (long) i);
         }
 
-        batch.commit().addOnFailureListener(e -> Toast.makeText(this, "Failed to save order: " + e.getMessage(), Toast.LENGTH_LONG).show());
+        batch.commit().addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to save order: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
     private void deletePhoto(Photo photo) {
@@ -293,19 +301,21 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
 
     // R2 files go first so a failure leaves the document in place and the delete can be retried.
     private void deleteHostedPhoto(Photo photo) {
+        Context ctx = requireContext();
+        android.app.Activity activity = requireActivity();
         new Thread(() -> {
             try {
-                PhotoStorageHelper.deleteKeys(this,
+                PhotoStorageHelper.deleteKeys(ctx,
                         PhotoStorageHelper.hostedKeys(photo.getImageUrl(), photo.getThumbnailUrl()));
             } catch (IOException e) {
-                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                activity.runOnUiThread(() -> Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 return;
             }
 
-            runOnUiThread(() -> db.collection("gallery").document(photo.getId())
+            activity.runOnUiThread(() -> db.collection("gallery").document(photo.getId())
                     .delete()
-                    .addOnSuccessListener(unused -> Toast.makeText(this, "Photo deleted", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()));
+                    .addOnSuccessListener(unused -> Toast.makeText(ctx, "Photo deleted", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()));
         }).start();
     }
 
@@ -319,8 +329,8 @@ public class GalleryActivity extends FaithfullyActivity implements PhotoAdapter.
                     if (photo.getThumbnailPath() != null) {
                         storage.getReference(photo.getThumbnailPath()).delete();
                     }
-                    Toast.makeText(this, "Photo deleted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Photo deleted", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 }
