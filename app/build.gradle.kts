@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mowtiie.faithfully"
-        minSdk = 24
+        minSdk = 30
         targetSdk = 36
         versionCode = 2
         versionName = "1.1"

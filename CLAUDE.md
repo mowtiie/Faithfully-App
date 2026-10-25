@@ -85,7 +85,7 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 - Gradle Kotlin DSL (`build.gradle.kts`).
 - Signing config loaded from `keystore.properties` (git-ignored) via a helper in `app/build.gradle.kts`. Release builds without the keystore build unsigned, useful for CI.
 - Release builds enable `isMinifyEnabled = true` and `isShrinkResources = true`. ProGuard rules in `proguard-rules.pro`.
-- Package: `com.mowtiie.faithfully`. Min SDK 24, target SDK 36, compile SDK 36.1.
+- Package: `com.mowtiie.faithfully`. Min SDK 30 (Android 11), target SDK 36, compile SDK 36.1.
 
 ## R2 photo storage
 
@@ -144,7 +144,7 @@ Mirrors the website's Apps section (`js/apps.js`, `js/apps-admin.js`, `js/data/a
 ## Known gaps
 
 - A few dialogs/sheets use `findViewById` (`GalleryActivity`, `CardsActivity`).
-- `HomeActivity` calls `ValueAnimator.areAnimatorsEnabled()` (API 26) while `minSdk` is 24: `lintDebug` reports two `NewApi` errors there, and it would crash on Android 7.x. Voice playback and recording have only been compile-, unit-test- and R8-checked, not run on a device.
+- Voice playback and recording, and every admin-only screen (multi-photo upload, the Apps editor), have only been compile-, unit-test- and R8-checked, not run signed in. `minSdk` was raised from 24 to 30, which also removed the old `NewApi` lint errors from `HomeActivity.areAnimatorsEnabled()` (API 26).
 
 ## Firestore ProGuard warnings
 
