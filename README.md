@@ -35,10 +35,15 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 
 ### 🐱 Gallery
 - 🖼 Upload with the system photo picker, no storage permission needed
+- 🗂 Add up to 20 photos at once, each with its own caption, with progress and retry for each
 - 🪶 Photos are resized and compressed automatically, with a thumbnail for the grid
 - 👆 Swipe through the photos in a full-screen viewer
 - 📝 Optional captions, editable from the long-press menu
 - ☁️ Photos live on Cloudflare R2, the same place the website serves them from
+
+### 📱 Apps
+- 🌻 A showcase of the small Android apps I built for her, with Download and Source buttons, the same list as the website
+- ✍️ Admin can add, edit, move, and delete apps right from the phone
 
 ### 🎙️ Voice
 - 🎤 Record a short voice message (up to 90 seconds), preview it, add a caption, and send
@@ -46,11 +51,6 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 - 🏷️ Filter chips for who sent it, and a sort menu: newest, oldest, longest or shortest
 - 🔒 Recordings are private: they play through a signed-in request, never from a public link
 - 🗑️ Only the admin can edit a caption or delete a message
-
-### 💾 Backup & Restore
-- 📦 Export everything (chapters, letters, photos, voice messages, and settings) to one `.zip`
-- ♻️ Restore from a backup, using the same format as the website's backup
-- 🔒 Admin only, found in Settings
 
 ### 🔐 Auth & Demo mode
 - 🔑 Email/password sign-in; only the two allow-listed accounts unlock the real content
