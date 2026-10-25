@@ -35,4 +35,9 @@
         android:id="@+id/galleryFragment"
         android:name="com.mowtiie.faithfully.ui.fragments.GalleryFragment"
         android:label="@string/title_gallery" />
+
+    <fragment
+        android:id="@+id/voiceFragment"
+        android:name="com.mowtiie.faithfully.ui.fragments.VoiceFragment"
+        android:label="@string/title_voice" />
 </navigation>

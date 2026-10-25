@@ -40,12 +40,8 @@
         <activity
             android:name=".ui.activities.AddVoiceActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.VoiceActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".ui.activities.VoiceActivity"
-            android:exported="false"
-            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.AboutActivity"
             android:exported="false"

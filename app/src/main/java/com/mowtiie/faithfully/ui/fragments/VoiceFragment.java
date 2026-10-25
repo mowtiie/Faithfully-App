@@ -1,5 +1,7 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.ui.fragments;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
@@ -7,34 +9,40 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
-import android.widget.PopupMenu;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
-import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.VoiceClip;
-import com.mowtiie.faithfully.databinding.ActivityVoiceBinding;
+import com.mowtiie.faithfully.databinding.FragmentVoiceBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.VoiceStorageHelper;
+import com.mowtiie.faithfully.ui.activities.AddVoiceActivity;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 import com.mowtiie.faithfully.ui.adapters.VoiceAdapter;
 
@@ -54,27 +62,29 @@ import java.util.TreeSet;
 /**
  * The website's Voice section. ADMIN and READER read and add recordings; only ADMIN edits or deletes.
  * GUEST sees sample cards with playback off. Clips have no public address: playback downloads the
- * file through the Worker into the app cache and plays that.
+ * file through the Worker into the app cache and plays that. Filter and sort live in the top app bar.
  */
-public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.OnVoiceActionListener {
+public class VoiceFragment extends Fragment implements VoiceAdapter.OnVoiceActionListener, MenuProvider {
 
     private static final long TICK_MS = 250;
     private static final String ALL = "all";
+    private static final int GROUP_FILTER = 1;
 
     private enum Sort { NEWEST, OLDEST, LONGEST, SHORTEST }
 
-    private ActivityVoiceBinding binding;
+    private FragmentVoiceBinding binding;
     private FirebaseFirestore db;
+    private ListenerRegistration playersRegistration;
+    private ListenerRegistration voiceRegistration;
 
     private VoiceAdapter adapter;
     private final List<VoiceClip> allClips = new ArrayList<>();
     private final List<VoiceClip> clips = new ArrayList<>();
     private final Map<String, String> players = new HashMap<>();
+    private final List<String> filterUids = new ArrayList<>();
     private String filterUid = ALL;
     private Sort sort = Sort.NEWEST;
-    private boolean rebuildingChips;
     private AuthHelper.Role role;
-    private boolean isAdmin;
 
     private MediaPlayer player;
     private boolean prepared;
@@ -89,43 +99,37 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         }
     };
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        binding = ActivityVoiceBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        binding = FragmentVoiceBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        role = AuthHelper.currentRole(this);
-        isAdmin = role == AuthHelper.Role.ADMIN;
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        Context ctx = requireContext();
+        role = AuthHelper.currentRole(ctx);
         db = FirebaseFirestore.getInstance();
 
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        requireActivity().addMenuProvider(this, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
 
         if (role == AuthHelper.Role.GUEST) {
             binding.fabAdd.hide();
         } else {
-            binding.fabAdd.setOnClickListener(v -> startActivity(new Intent(this, AddVoiceActivity.class)));
+            binding.fabAdd.setOnClickListener(v -> startActivity(new Intent(ctx, AddVoiceActivity.class)));
         }
 
-        adapter = new VoiceAdapter(this, clips, players, this, role);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new VoiceAdapter(ctx, clips, players, this, role);
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(ctx));
         if (binding.recyclerView.getItemAnimator() instanceof SimpleItemAnimator) {
             ((SimpleItemAnimator) binding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
         }
 
-        setupTools();
-
         if (role == AuthHelper.Role.GUEST) {
-            binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(this, role), adapter));
+            binding.recyclerView.setAdapter(new ConcatAdapter(NoticeAdapter.forRole(ctx, role), adapter));
             showMock();
             return;
         }
@@ -134,21 +138,38 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         loadVoice();
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (playersRegistration != null) {
+            playersRegistration.remove();
+            playersRegistration = null;
+        }
+        if (voiceRegistration != null) {
+            voiceRegistration.remove();
+            voiceRegistration = null;
+        }
+        releasePlayer();
+        loadToken++;
+        playingId = null;
+        binding = null;
+    }
+
     private void showMock() {
         allClips.clear();
-        allClips.addAll(MockDataLoader.getVoice(this));
+        allClips.addAll(MockDataLoader.getVoice(requireContext()));
         players.clear();
-        players.putAll(MockDataLoader.getVoicePlayers(this));
-        applyView(true);
+        players.putAll(MockDataLoader.getVoicePlayers(requireContext()));
+        applyView();
     }
 
     private void loadVoice() {
         binding.progressBar.setVisibility(View.VISIBLE);
 
         // The emoji for each account comes from the same document the website's Draw board uses.
-        db.collection("settings").document("draw")
-                .addSnapshotListener(this, (snap, error) -> {
-                    if (error != null || snap == null) return;
+        playersRegistration = db.collection("settings").document("draw")
+                .addSnapshotListener((snap, error) -> {
+                    if (binding == null || error != null || snap == null) return;
                     players.clear();
                     Object raw = snap.get("players");
                     if (raw instanceof Map) {
@@ -158,16 +179,17 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
                             }
                         }
                     }
-                    applyView(true);
+                    applyView();
                 });
 
-        db.collection("voice")
+        voiceRegistration = db.collection("voice")
                 .orderBy("createdAt", Query.Direction.DESCENDING)
-                .addSnapshotListener(this, (snapshots, error) -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (binding == null) return;
                     binding.progressBar.setVisibility(View.GONE);
 
                     if (error != null) {
-                        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
                         return;
                     }
 
@@ -186,7 +208,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
                     }
 
                     if (playingId != null && !containsClip(playingId)) stopPlayback();
-                    applyView(true);
+                    applyView();
                 });
     }
 
@@ -195,32 +217,51 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         return false;
     }
 
-    // ------------------------------------------------------------------
-    //  Filter and sort
-    // ------------------------------------------------------------------
+    @Override
+    public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+        menuInflater.inflate(R.menu.menu_voice, menu);
+    }
 
-    private void setupTools() {
-        binding.chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (rebuildingChips || checkedIds.isEmpty()) return;
-            Chip chip = group.findViewById(checkedIds.get(0));
-            if (chip == null) return;
-            filterUid = (String) chip.getTag();
-            applyView(false);
-        });
+    @Override
+    public void onPrepareMenu(@NonNull Menu menu) {
+        menu.findItem(sortItemId()).setChecked(true);
 
-        binding.btnSort.setText(sortLabel());
-        binding.btnSort.setOnClickListener(v -> {
-            PopupMenu menu = new PopupMenu(this, v);
-            menu.inflate(R.menu.menu_voice_sort);
-            menu.getMenu().findItem(sortItemId()).setChecked(true);
-            menu.setOnMenuItemClickListener(item -> {
-                sort = sortFor(item.getItemId());
-                binding.btnSort.setText(sortLabel());
-                applyView(false);
-                return true;
-            });
-            menu.show();
-        });
+        SubMenu filterMenu = menu.findItem(R.id.menu_filter).getSubMenu();
+        if (filterMenu == null) return;
+        filterMenu.clear();
+        filterUids.clear();
+        filterUids.add(ALL);
+        filterUids.addAll(senders());
+
+        for (int i = 0; i < filterUids.size(); i++) {
+            String uid = filterUids.get(i);
+            String title = ALL.equals(uid)
+                    ? getString(R.string.voice_filter_all, allClips.size())
+                    : getString(R.string.voice_filter_sender, senderLabel(uid), countFrom(uid));
+            filterMenu.add(GROUP_FILTER, i, i, title)
+                    .setCheckable(true)
+                    .setChecked(uid.equals(filterUid));
+        }
+        filterMenu.setGroupCheckable(GROUP_FILTER, true, true);
+    }
+
+    @Override
+    public boolean onMenuItemSelected(@NonNull MenuItem item) {
+        if (item.getGroupId() == GROUP_FILTER) {
+            if (item.getItemId() < filterUids.size()) {
+                filterUid = filterUids.get(item.getItemId());
+                applyView();
+            }
+            return true;
+        }
+
+        int id = item.getItemId();
+        if (id == R.id.sort_newest || id == R.id.sort_oldest || id == R.id.sort_longest || id == R.id.sort_shortest) {
+            sort = sortFor(id);
+            applyView();
+            return true;
+        }
+        return false;
     }
 
     private int sortItemId() {
@@ -235,13 +276,6 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         if (itemId == R.id.sort_longest)  return Sort.LONGEST;
         if (itemId == R.id.sort_shortest) return Sort.SHORTEST;
         return Sort.NEWEST;
-    }
-
-    private String sortLabel() {
-        if (sort == Sort.OLDEST)   return getString(R.string.voice_sort_oldest);
-        if (sort == Sort.LONGEST)  return getString(R.string.voice_sort_longest);
-        if (sort == Sort.SHORTEST) return getString(R.string.voice_sort_shortest);
-        return getString(R.string.voice_sort_newest);
     }
 
     // A clip still waiting for its server timestamp is the newest; sample clips have no date and keep their order.
@@ -259,7 +293,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         }
     }
 
-    // Both accounts always get a chip, even before they have sent anything.
+    // Both accounts always get an entry, even before they have sent anything.
     private List<String> senders() {
         Set<String> uids = new LinkedHashSet<>();
         if (role != AuthHelper.Role.GUEST) {
@@ -271,7 +305,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         return new ArrayList<>(uids);
     }
 
-    private String chipLabel(String uid) {
+    private String senderLabel(String uid) {
         String emoji = players.get(uid);
         if (emoji != null) return emoji;
         if (role == AuthHelper.Role.GUEST) return "🎙️";
@@ -285,32 +319,8 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         return count;
     }
 
-    private void rebuildChips(List<String> senders) {
-        rebuildingChips = true;
-        binding.chipGroup.removeAllViews();
-        addChip(ALL, getString(R.string.voice_filter_all, allClips.size()));
-        for (String uid : senders) {
-            addChip(uid, getString(R.string.voice_filter_sender, chipLabel(uid), countFrom(uid)));
-        }
-        rebuildingChips = false;
-    }
-
-    private void addChip(String uid, String text) {
-        Chip chip = (Chip) getLayoutInflater().inflate(R.layout.chip_voice_filter, binding.chipGroup, false);
-        chip.setId(View.generateViewId());
-        chip.setTag(uid);
-        chip.setText(text);
-        chip.setChecked(uid.equals(filterUid));
-        binding.chipGroup.addView(chip);
-    }
-
-    private void applyView(boolean rebuild) {
-        List<String> senders = senders();
-        if (!ALL.equals(filterUid) && !senders.contains(filterUid)) {
-            filterUid = ALL;
-            rebuild = true;
-        }
-        if (rebuild) rebuildChips(senders);
+    private void applyView() {
+        if (!ALL.equals(filterUid) && !senders().contains(filterUid)) filterUid = ALL;
 
         clips.clear();
         for (VoiceClip clip : allClips) {
@@ -319,14 +329,10 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
         Collections.sort(clips, comparator());
         adapter.notifyDataSetChanged();
 
-        binding.tools.setVisibility(View.VISIBLE);
         binding.tvEmpty.setText(allClips.isEmpty() ? R.string.voice_empty : R.string.voice_none_from_sender);
         binding.tvEmpty.setVisibility(clips.isEmpty() ? View.VISIBLE : View.GONE);
+        requireActivity().invalidateOptionsMenu();
     }
-
-    // ------------------------------------------------------------------
-    //  Playback
-    // ------------------------------------------------------------------
 
     @Override
     public void onPlayPause(VoiceClip clip) {
@@ -355,18 +361,20 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     private void startPlayback(VoiceClip clip) {
         stopPlayback();
         final int token = ++loadToken;
+        final Context ctx = requireContext();
+        final Activity activity = requireActivity();
         playingId = clip.getId();
         adapter.setPlayback(playingId, VoiceAdapter.State.LOADING, 0, 0, null);
 
         new Thread(() -> {
             try {
-                File file = VoiceStorageHelper.download(this, clip.getAudioPath());
-                runOnUiThread(() -> {
-                    if (token == loadToken) prepare(clip, file, token);
+                File file = VoiceStorageHelper.download(ctx, clip.getAudioPath());
+                activity.runOnUiThread(() -> {
+                    if (token == loadToken && binding != null) prepare(clip, file, token);
                 });
             } catch (IOException | SecurityException e) {
-                runOnUiThread(() -> {
-                    if (token == loadToken) fail(clip.getId(), e.getMessage());
+                activity.runOnUiThread(() -> {
+                    if (token == loadToken && binding != null) fail(clip.getId(), e.getMessage());
                 });
             }
         }).start();
@@ -432,7 +440,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         super.onStop();
         if (player != null && prepared && player.isPlaying()) {
             player.pause();
@@ -442,27 +450,16 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        releasePlayer();
-        loadToken++;
-        binding = null;
-    }
-
-    // ------------------------------------------------------------------
-    //  Admin actions
-    // ------------------------------------------------------------------
-
-    @Override
     public void onEditCaption(VoiceClip clip) {
         if (role != AuthHelper.Role.ADMIN) return;
 
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_caption, null);
+        Context ctx = requireContext();
+        View view = LayoutInflater.from(ctx).inflate(R.layout.dialog_edit_caption, null);
         TextInputEditText input = view.findViewById(R.id.input_caption);
         input.setText(clip.getCaption());
         input.setSelection(clip.getCaption().length());
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(ctx)
                 .setTitle("Edit Caption")
                 .setView(view)
                 .setNegativeButton("Cancel", null)
@@ -472,8 +469,8 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
             String caption = Objects.requireNonNull(input.getText()).toString().trim();
             db.collection("voice").document(clip.getId())
                     .update("caption", caption)
-                    .addOnSuccessListener(unused -> Toast.makeText(this, "Caption updated", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    .addOnSuccessListener(unused -> Toast.makeText(ctx, "Caption updated", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
             dialog.dismiss();
         }));
         dialog.show();
@@ -483,7 +480,7 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     public void onDelete(VoiceClip clip) {
         if (role != AuthHelper.Role.ADMIN) return;
 
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.voice_delete_title)
                 .setMessage(R.string.voice_delete_message)
                 .setPositiveButton("Delete", (d, w) -> deleteClip(clip))
@@ -495,18 +492,20 @@ public class VoiceActivity extends FaithfullyActivity implements VoiceAdapter.On
     private void deleteClip(VoiceClip clip) {
         if (role != AuthHelper.Role.ADMIN) return;
 
+        Context ctx = requireContext();
+        Activity activity = requireActivity();
         new Thread(() -> {
             try {
-                if (clip.getAudioPath() != null) VoiceStorageHelper.delete(this, clip.getAudioPath());
+                if (clip.getAudioPath() != null) VoiceStorageHelper.delete(ctx, clip.getAudioPath());
             } catch (IOException e) {
-                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                activity.runOnUiThread(() -> Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 return;
             }
 
-            runOnUiThread(() -> db.collection("voice").document(clip.getId())
+            activity.runOnUiThread(() -> db.collection("voice").document(clip.getId())
                     .delete()
-                    .addOnSuccessListener(unused -> Toast.makeText(this, "Recording deleted", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()));
+                    .addOnSuccessListener(unused -> Toast.makeText(ctx, "Recording deleted", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()));
         }).start();
     }
 }

@@ -5,7 +5,7 @@ import androidx.annotation.Nullable;
 import com.google.firebase.Timestamp;
 
 /**
- * A voice message. Built by hand from the Firestore document (see VoiceActivity), never through
+ * A voice message. Built by hand from the Firestore document (see VoiceFragment), never through
  * toObject, so it needs no ProGuard rule. {@code audioPath} is null for guest sample clips.
  */
 public class VoiceClip {

@@ -58,7 +58,6 @@ public class MainActivity extends FaithfullyActivity {
 
         role = AuthHelper.currentRole(this);
 
-        legacyScreens.put(R.id.voiceFragment, VoiceActivity.class);
         legacyScreens.put(R.id.settingsFragment, SettingsActivity.class);
         legacyScreens.put(R.id.aboutFragment, AboutActivity.class);
 
@@ -66,7 +65,7 @@ public class MainActivity extends FaithfullyActivity {
 
         NavHostFragment host = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = host.getNavController();
-        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment, R.id.chaptersFragment, R.id.galleryFragment)
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment, R.id.chaptersFragment, R.id.galleryFragment, R.id.voiceFragment)
                 .setOpenableLayout(binding.drawerLayout)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_filter"
+        android:icon="@drawable/ic_filter_list"
+        android:title="@string/voice_filter_label"
+        app:showAsAction="ifRoom">
+        <menu />
+    </item>
+
+    <item
+        android:id="@+id/menu_sort"
+        android:icon="@drawable/ic_sort"
+        android:title="@string/voice_sort_label"
+        app:showAsAction="ifRoom">
+        <menu>
+            <group
+                android:id="@+id/group_sort"
+                android:checkableBehavior="single">
+                <item android:id="@+id/sort_newest"   android:title="@string/voice_sort_newest" />
+                <item android:id="@+id/sort_oldest"   android:title="@string/voice_sort_oldest" />
+                <item android:id="@+id/sort_longest"  android:title="@string/voice_sort_longest" />
+                <item android:id="@+id/sort_shortest" android:title="@string/voice_sort_shortest" />
+            </group>
+        </menu>
+    </item>
+</menu>

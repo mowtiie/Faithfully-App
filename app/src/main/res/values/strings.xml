@@ -67,6 +67,7 @@
     <string name="voice_filter_sender">%1$s %2$d</string>
     <string name="voice_chip_me">Me</string>
     <string name="voice_chip_them">Them</string>
+    <string name="voice_filter_label">Filter recordings</string>
     <string name="voice_sort_label">Sort recordings</string>
     <string name="voice_sort_newest">Newest first</string>
     <string name="voice_sort_oldest">Oldest first</string>
