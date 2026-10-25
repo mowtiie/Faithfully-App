@@ -30,7 +30,7 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 - `com.mowtiie.faithfully.ui.activities.*`: Activities (extend `FaithfullyActivity` base)
 - `com.mowtiie.faithfully.ui.adapters.*`: RecyclerView adapters
 - `com.mowtiie.faithfully.data.*`: POJO models (Chapter, Card, Photo, VoiceClip)
-- `com.mowtiie.faithfully.helper.*`: AuthHelper, ChapterDbHelper, NetworkHelper, MockDataLoader, WorkerClient (Cloudflare Worker calls), PhotoStorageHelper, VoiceStorageHelper, VoiceFormat
+- `com.mowtiie.faithfully.helper.*`: AuthHelper, ChapterDbHelper, NetworkHelper, MockDataLoader, WorkerClient (Cloudflare Worker calls), PhotoStorageHelper, VoiceStorageHelper, VoiceFormat, ReaderSession, GallerySession
 
 ## Activity map
 
@@ -44,7 +44,8 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 | `AddChapterActivity` / `AddCardActivity` / `AddPhotoActivity` | CRUD screens | Admin only (implicit, since non-admins can't get here) |
 | `VoiceActivity` | Voice clips list with playback | ADMIN edits/deletes; READER plays and records; GUEST sample clips, playback off |
 | `AddVoiceActivity` | Record, preview, caption and save a clip | ADMIN and READER only |
-| `PhotoViewerActivity` | Full-screen photo view | All roles |
+| `ReaderActivity` | Full-screen letter reader: swipe or Previous/Next through a chapter's letters, progress bar, "Back to chapter" on the last one | All roles. READER and GUEST open it by tapping a letter; ADMIN uses the Read button on the expanded card (tapping expands it for the edit actions) |
+| `PhotoViewerActivity` | Full-screen photos you swipe through, with a "3 of 12" counter | All roles |
 | `SettingsActivity` | App preferences, plus Backup & Restore and Clear all (admin only, hidden for others) | Any role; backup section ADMIN only |
 | `AboutActivity` | App info | Any role |
 
@@ -106,6 +107,14 @@ Mirrors the website's Voice section (`js/voice.js`, `js/voice-recorder.js`).
 - **Playback:** `VoiceStorageHelper.download` fetches the file through the Worker into `cacheDir/voice/` and `VoiceActivity` plays it with one `MediaPlayer`. The cache is cleared by `AuthHelper.signOutEverything`.
 - **Delete order:** file first (Worker), then the document, so a failure can be retried. If the Firestore write fails after an upload, the new file is deleted best-effort (only the admin can; for Ali it is left behind).
 - Pure helpers (keys, MIME/extension, clock text) are in `VoiceFormat`, unit-tested in `VoiceFormatTest`.
+- **Filter and sort** (mirrors the website): filter chips (All plus one per sender, with counts; both accounts always get a chip) and a sort menu (newest, oldest, longest, shortest). `VoiceActivity` keeps the full list in `allClips` and a filtered, sorted copy in `clips` (the adapter's list); a clip still waiting for its server timestamp counts as the newest. Chips read the sender emoji from `settings/draw.players`, falling back to "Me" / "Them".
+
+## Reader and photo viewer
+
+- Both are fed through small in-memory holders instead of Intent extras, because a chapter of letters can be larger than the Intent limit: `ReaderSession` (set by `CardsActivity.onRead`) and `GallerySession` (set by `GalleryActivity.onTap`). Mirrors the website's `js/letter-store.js`. If the holder is empty (process death) the reader finishes and the viewer falls back to the single `image_url` extra.
+- Both use `ViewPager2` (it comes in through the Material dependency).
+- Set toolbar titles through `getSupportActionBar()`, not `binding.toolbar.setTitle`: after `setSupportActionBar` the toolbar title is reset to the app name.
+- Not done yet compared with the website: next-chapter at the end of the reader, print, and pinch-to-zoom in the photo viewer.
 
 ## Home screen
 
