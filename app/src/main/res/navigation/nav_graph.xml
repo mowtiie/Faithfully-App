@@ -40,4 +40,14 @@
         android:id="@+id/voiceFragment"
         android:name="com.mowtiie.faithfully.ui.fragments.VoiceFragment"
         android:label="@string/title_voice" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.mowtiie.faithfully.ui.fragments.SettingsFragment"
+        android:label="@string/title_settings" />
+
+    <fragment
+        android:id="@+id/aboutFragment"
+        android:name="com.mowtiie.faithfully.ui.fragments.AboutFragment"
+        android:label="@string/title_about" />
 </navigation>

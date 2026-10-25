@@ -43,16 +43,6 @@
             android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ui.activities.AboutActivity"
-            android:exported="false"
-            android:parentActivityName=".ui.activities.MainActivity"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".ui.activities.SettingsActivity"
-            android:exported="false"
-            android:parentActivityName=".ui.activities.MainActivity"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
             android:name=".ui.activities.AddCardActivity"
             android:exported="false"
             android:parentActivityName=".ui.activities.MainActivity"

@@ -25,9 +25,6 @@ import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.databinding.ActivityMainBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * The single host screen: a toolbar, the navigation drawer and the NavHostFragment that shows each
  * section. Login, the add and edit forms, the letter reader and the photo viewer stay separate screens.
@@ -38,9 +35,6 @@ public class MainActivity extends FaithfullyActivity {
     private NavController navController;
     private AppBarConfiguration appBarConfiguration;
     private AuthHelper.Role role;
-
-    // Sections that are not fragments yet open their old screen from the drawer.
-    private final Map<Integer, Class<?>> legacyScreens = new HashMap<>();
 
     private OnBackPressedCallback drawerBack;
 
@@ -58,14 +52,12 @@ public class MainActivity extends FaithfullyActivity {
 
         role = AuthHelper.currentRole(this);
 
-        legacyScreens.put(R.id.settingsFragment, SettingsActivity.class);
-        legacyScreens.put(R.id.aboutFragment, AboutActivity.class);
-
         setSupportActionBar(binding.toolbar);
 
         NavHostFragment host = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = host.getNavController();
-        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment, R.id.chaptersFragment, R.id.galleryFragment, R.id.voiceFragment)
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment, R.id.chaptersFragment, R.id.galleryFragment, R.id.voiceFragment,
+                R.id.settingsFragment, R.id.aboutFragment)
                 .setOpenableLayout(binding.drawerLayout)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
@@ -113,12 +105,6 @@ public class MainActivity extends FaithfullyActivity {
 
         if (id == R.id.action_sign_out) {
             confirmSignOut();
-            return false;
-        }
-
-        Class<?> legacy = legacyScreens.get(id);
-        if (legacy != null) {
-            startActivity(new Intent(this, legacy));
             return false;
         }
 
