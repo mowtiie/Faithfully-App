@@ -58,7 +58,6 @@ public class MainActivity extends FaithfullyActivity {
 
         role = AuthHelper.currentRole(this);
 
-        legacyScreens.put(R.id.chaptersFragment, ChaptersActivity.class);
         legacyScreens.put(R.id.galleryFragment, GalleryActivity.class);
         legacyScreens.put(R.id.voiceFragment, VoiceActivity.class);
         legacyScreens.put(R.id.settingsFragment, SettingsActivity.class);
@@ -68,7 +67,7 @@ public class MainActivity extends FaithfullyActivity {
 
         NavHostFragment host = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = host.getNavController();
-        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment)
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment, R.id.chaptersFragment)
                 .setOpenableLayout(binding.drawerLayout)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
@@ -129,8 +128,9 @@ public class MainActivity extends FaithfullyActivity {
     }
 
     private void markCurrent(NavDestination destination) {
-        if (binding == null || binding.navView.getMenu().findItem(destination.getId()) == null) return;
-        binding.navView.setCheckedItem(destination.getId());
+        if (binding == null) return;
+        int id = destination.getId() == R.id.cardsFragment ? R.id.chaptersFragment : destination.getId();
+        if (binding.navView.getMenu().findItem(id) != null) binding.navView.setCheckedItem(id);
     }
 
     private void confirmSignOut() {

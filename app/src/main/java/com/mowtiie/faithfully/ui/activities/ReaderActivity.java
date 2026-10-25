@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * Full-screen letter reader, like the website's reader: swipe or use the buttons to move between the
- * letters of a chapter. The letters come from {@link ReaderSession}, set by CardsActivity.
+ * letters of a chapter. The letters come from {@link ReaderSession}, set by CardsFragment.
  */
 public class ReaderActivity extends FaithfullyActivity {
 

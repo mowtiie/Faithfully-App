@@ -1,19 +1,16 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.ui.fragments;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,18 +21,21 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import com.mowtiie.faithfully.R;
 import com.mowtiie.faithfully.data.Card;
 import com.mowtiie.faithfully.data.Chapter;
-import com.mowtiie.faithfully.databinding.ActivityCardsBinding;
+import com.mowtiie.faithfully.databinding.FragmentCardsBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.ReaderSession;
+import com.mowtiie.faithfully.ui.activities.AddCardActivity;
+import com.mowtiie.faithfully.ui.activities.ReaderActivity;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
@@ -43,15 +43,16 @@ import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnCardActionListener {
+/** The letters in one chapter. Reached from ChaptersFragment with chapter_id and chapter_title arguments. */
+public class CardsFragment extends Fragment implements CardAdapter.OnCardActionListener {
 
-    private ActivityCardsBinding binding;
+    private FragmentCardsBinding binding;
     private FirebaseFirestore db;
     private ChapterDbHelper dbHelper;
+    private ListenerRegistration registration;
 
     private CardAdapter adapter;
     private List<Card> cardList;
-    private ItemTouchHelper itemTouchHelper;
     private boolean isDragging = false;
     private boolean isAdmin;
     private AuthHelper.Role role;
@@ -59,54 +60,48 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
     private String chapterId;
     private String chapterTitle;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        binding = ActivityCardsBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        binding = FragmentCardsBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        role = AuthHelper.currentRole(this);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        Context ctx = requireContext();
+        role = AuthHelper.currentRole(ctx);
         isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
-        dbHelper = ChapterDbHelper.getInstance(this);
+        dbHelper = ChapterDbHelper.getInstance(ctx);
 
-        chapterId = getIntent().getStringExtra("chapter_id");
-        chapterTitle = getIntent().getStringExtra("chapter_title");
-
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(chapterTitle);
-        }
+        Bundle args = requireArguments();
+        chapterId = args.getString("chapter_id");
+        chapterTitle = args.getString("chapter_title");
 
         if (!isAdmin) {
             binding.fabAdd.hide();
         } else {
             binding.fabAdd.setOnClickListener(v -> {
-                Intent intent = new Intent(CardsActivity.this, AddCardActivity.class);
-                intent.putExtra("chapter_id",    chapterId);
+                Intent intent = new Intent(ctx, AddCardActivity.class);
+                intent.putExtra("chapter_id", chapterId);
                 intent.putExtra("chapter_title", chapterTitle);
                 startActivity(intent);
             });
         }
 
         cardList = new ArrayList<>();
-        adapter = new CardAdapter(this, cardList, this, isAdmin);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new CardAdapter(ctx, cardList, this, isAdmin);
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(ctx));
 
         if (isAdmin) {
             binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
         } else {
-            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(this, role);
-            ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
-            binding.recyclerView.setAdapter(concatAdapter);
+            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(ctx, role);
+            binding.recyclerView.setAdapter(new ConcatAdapter(noticeAdapter, adapter));
         }
 
         if (role == AuthHelper.Role.GUEST) {
@@ -117,10 +112,20 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
         loadCards();
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (registration != null) {
+            registration.remove();
+            registration = null;
+        }
+        binding = null;
+    }
+
     // Guests see the sample letters for this chapter and never touch Firestore.
     private void showMock() {
         cardList.clear();
-        cardList.addAll(MockDataLoader.getCards(this, chapterId));
+        cardList.addAll(MockDataLoader.getCards(requireContext(), chapterId));
         adapter.notifyDataSetChanged();
         binding.tvEmpty.setVisibility(cardList.isEmpty() ? View.VISIBLE : View.GONE);
     }
@@ -148,7 +153,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
                 if (state == ItemTouchHelper.ACTION_STATE_DRAG && vh != null) {
                     isDragging = true;
                     MaterialCardView card = (MaterialCardView) vh.itemView;
-                    int color = getResources().getColor(R.color.md_theme_primaryContainer, getTheme());
+                    int color = requireContext().getResources().getColor(R.color.md_theme_primaryContainer, requireContext().getTheme());
                     card.setCardBackgroundColor(color);
                     card.setCardElevation(24f);
                     card.setScaleX(1.03f);
@@ -160,7 +165,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             public void clearView(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh) {
                 super.clearView(rv, vh);
                 MaterialCardView card = (MaterialCardView) vh.itemView;
-                int color = getResources().getColor(R.color.md_theme_surfaceContainer, getTheme());
+                int color = requireContext().getResources().getColor(R.color.md_theme_surfaceContainer, requireContext().getTheme());
                 card.setCardBackgroundColor(color);
                 card.setCardElevation(4f);
                 card.setScaleX(1f);
@@ -173,23 +178,23 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             public boolean isLongPressDragEnabled() { return true; }
         };
 
-        itemTouchHelper = new ItemTouchHelper(callback);
-        itemTouchHelper.attachToRecyclerView(binding.recyclerView);
+        new ItemTouchHelper(callback).attachToRecyclerView(binding.recyclerView);
     }
 
     private void loadCards() {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.recyclerView.setVisibility(View.GONE);
 
-        db.collection("cards")
+        registration = db.collection("cards")
                 .whereEqualTo("chapterId", chapterId)
                 .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener(this, (snapshots, error) -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (binding == null) return;
                     binding.progressBar.setVisibility(View.GONE);
                     binding.recyclerView.setVisibility(View.VISIBLE);
 
                     if (error != null) {
-                        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
                         return;
                     }
 
@@ -218,7 +223,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
     @Override
     public void onRead(Card card) {
         ReaderSession.set(chapterTitle, cardList);
-        Intent intent = new Intent(this, ReaderActivity.class);
+        Intent intent = new Intent(requireContext(), ReaderActivity.class);
         intent.putExtra(ReaderActivity.EXTRA_INDEX, Math.max(0, cardList.indexOf(card)));
         startActivity(intent);
     }
@@ -229,7 +234,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             return;
         }
 
-        Intent intent = new Intent(this, AddCardActivity.class);
+        Intent intent = new Intent(requireContext(), AddCardActivity.class);
         intent.putExtra("card_id",         card.getId());
         intent.putExtra("card_title",      card.getTitle());
         intent.putExtra("card_message",    card.getMessage());
@@ -245,7 +250,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
         if (!isAdmin) {
             return;
         }
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Delete card")
                 .setMessage("Delete \"" + card.getTitle() + "\"?")
                 .setPositiveButton("Delete", (d, w) -> deleteCard(card))
@@ -256,15 +261,16 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
     @Override
     public void onChangeChapter(Card card) {
         if (!isAdmin) return;
+        Context ctx = requireContext();
         List<Chapter> chapters = dbHelper.getAll();
 
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_chapter, null);
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(ctx);
+        View sheetView = LayoutInflater.from(ctx).inflate(R.layout.bottom_sheet_chapter, null);
 
         RecyclerView rvChapters = sheetView.findViewById(R.id.rv_chapters);
-        rvChapters.setLayoutManager(new LinearLayoutManager(this));
+        rvChapters.setLayoutManager(new LinearLayoutManager(ctx));
 
-        ChapterBottomSheetAdapter adapter = new ChapterBottomSheetAdapter(this, chapters, new ChapterBottomSheetAdapter.OnChapterSelectedListener() {
+        ChapterBottomSheetAdapter sheetAdapter = new ChapterBottomSheetAdapter(ctx, chapters, new ChapterBottomSheetAdapter.OnChapterSelectedListener() {
             @Override
             public void onChapterSelected(Chapter chapter) {
                 updateCardChapter(card, chapter.getId());
@@ -278,7 +284,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             }
         });
 
-        rvChapters.setAdapter(adapter);
+        rvChapters.setAdapter(sheetAdapter);
         bottomSheetDialog.setContentView(sheetView);
 
         BottomSheetBehavior<?> behavior = bottomSheetDialog.getBehavior();
@@ -302,6 +308,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
     }
 
     private void updateCardChapter(Card card, String newChapterId) {
+        Context ctx = requireContext();
         db.collection("cards")
                 .document(card.getId())
                 .update("chapterId", newChapterId)
@@ -309,27 +316,29 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
                     String msg = newChapterId == null
                             ? "Removed from chapter"
                             : "Moved to chapter";
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(),
+                        Toast.makeText(ctx, "Error: " + e.getMessage(),
                                 Toast.LENGTH_LONG).show());
     }
 
     private void deleteCard(Card card) {
+        Context ctx = requireContext();
         db.collection("cards")
                 .document(card.getId())
                 .delete()
                 .addOnSuccessListener(unused ->
-                        Toast.makeText(this, "Card deleted", Toast.LENGTH_SHORT).show())
+                        Toast.makeText(ctx, "Card deleted", Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(),
+                        Toast.makeText(ctx, "Error: " + e.getMessage(),
                                 Toast.LENGTH_LONG).show());
     }
 
     @Override
     public void onReordered(List<Card> reordered) {
         if (!isAdmin) return;
+        Context ctx = requireContext();
         WriteBatch batch = db.batch();
         for (int i = 0; i < reordered.size(); i++) {
             batch.update(
@@ -338,7 +347,7 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
             );
         }
         batch.commit().addOnFailureListener(e ->
-                Toast.makeText(this, "Failed to save order: " + e.getMessage(),
+                Toast.makeText(ctx, "Failed to save order: " + e.getMessage(),
                         Toast.LENGTH_LONG).show());
     }
 }

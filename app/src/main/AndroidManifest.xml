@@ -40,7 +40,7 @@
         <activity
             android:name=".ui.activities.ReaderActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.CardsActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.AddVoiceActivity"
             android:exported="false"
@@ -63,20 +63,10 @@
         <activity
             android:name=".ui.activities.AddCardActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.CardsActivity"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".ui.activities.CardsActivity"
-            android:exported="false"
-            android:parentActivityName=".ui.activities.ChaptersActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.AddChapterActivity"
-            android:exported="false"
-            android:parentActivityName=".ui.activities.ChaptersActivity"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".ui.activities.ChaptersActivity"
             android:exported="false"
             android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />

@@ -1,102 +1,92 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.ui.fragments;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import com.mowtiie.faithfully.R;
-import com.mowtiie.faithfully.data.Card;
 import com.mowtiie.faithfully.data.Chapter;
-import com.mowtiie.faithfully.databinding.ActivityChaptersBinding;
+import com.mowtiie.faithfully.databinding.FragmentChaptersBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
 import com.mowtiie.faithfully.helper.NetworkHelper;
-import com.mowtiie.faithfully.ui.adapters.CardAdapter;
+import com.mowtiie.faithfully.ui.activities.AddChapterActivity;
 import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapter.OnChapterActionListener {
+public class ChaptersFragment extends Fragment implements ChapterAdapter.OnChapterActionListener {
 
-    private ActivityChaptersBinding binding;
+    private FragmentChaptersBinding binding;
 
     private FirebaseFirestore db;
     private ChapterDbHelper dbHelper;
+    private ListenerRegistration registration;
 
     private ChapterAdapter adapter;
     private List<Chapter> chapterList;
-    private ItemTouchHelper itemTouchHelper;
 
     private boolean isDragging = false;
     private boolean isAdmin;
     private AuthHelper.Role role;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        binding = ActivityChaptersBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        binding = FragmentChaptersBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        role = AuthHelper.currentRole(this);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        Context ctx = requireContext();
+        role = AuthHelper.currentRole(ctx);
         isAdmin = role == AuthHelper.Role.ADMIN;
         db = FirebaseFirestore.getInstance();
-        dbHelper = ChapterDbHelper.getInstance(this);
-
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        dbHelper = ChapterDbHelper.getInstance(ctx);
 
         if (!isAdmin) {
             binding.fabAdd.hide();
         } else {
-            binding.fabAdd.setOnClickListener(v -> {
-                Intent addChapterIntent = new Intent(ChaptersActivity.this, AddChapterActivity.class);
-                startActivity(addChapterIntent);
-            });
+            binding.fabAdd.setOnClickListener(v -> startActivity(new Intent(ctx, AddChapterActivity.class)));
         }
 
         chapterList = new ArrayList<>();
         adapter = new ChapterAdapter(chapterList, this, isAdmin);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(ctx));
 
         if (isAdmin) {
             binding.recyclerView.setAdapter(adapter);
             setupDragAndDrop();
         } else {
-            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(this, role);
-            ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
-            binding.recyclerView.setAdapter(concatAdapter);
+            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(ctx, role);
+            binding.recyclerView.setAdapter(new ConcatAdapter(noticeAdapter, adapter));
         }
 
         if (role == AuthHelper.Role.GUEST) {
@@ -108,10 +98,20 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
         listenFirestore();
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (registration != null) {
+            registration.remove();
+            registration = null;
+        }
+        binding = null;
+    }
+
     // Guests see the sample chapters and never touch Firestore or the chapter cache.
     private void showMock() {
         chapterList.clear();
-        chapterList.addAll(MockDataLoader.getChapters(this));
+        chapterList.addAll(MockDataLoader.getChapters(requireContext()));
         adapter.notifyDataSetChanged();
         binding.tvEmpty.setVisibility(chapterList.isEmpty() ? View.VISIBLE : View.GONE);
     }
@@ -127,20 +127,21 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
     }
 
     private void listenFirestore() {
-        if (NetworkHelper.isOffline(this)) {
-            Toast.makeText(this, "You are currently offline.", Toast.LENGTH_SHORT).show();
+        if (NetworkHelper.isOffline(requireContext())) {
+            Toast.makeText(requireContext(), "You are currently offline.", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        db.collection("chapters")
+        registration = db.collection("chapters")
                 .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener(this, (snapshots, error) -> {
+                .addSnapshotListener((snapshots, error) -> {
+                    if (binding == null) return;
                     binding.progressBar.setVisibility(View.GONE);
 
                     if (error != null) {
-                        Toast.makeText(this, "Error: " + error.getMessage(),
+                        Toast.makeText(requireContext(), "Error: " + error.getMessage(),
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -191,7 +192,7 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
                 if (state == ItemTouchHelper.ACTION_STATE_DRAG && vh != null) {
                     isDragging = true;
                     MaterialCardView card = (MaterialCardView) vh.itemView;
-                    int color = getResources().getColor(R.color.md_theme_primaryContainer, getTheme());
+                    int color = requireContext().getResources().getColor(R.color.md_theme_primaryContainer, requireContext().getTheme());
                     card.setCardBackgroundColor(color);
                     card.setCardElevation(24f);
                     card.setScaleX(1.03f);
@@ -204,7 +205,7 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
                                   @NonNull RecyclerView.ViewHolder vh) {
                 super.clearView(rv, vh);
                 MaterialCardView card = (MaterialCardView) vh.itemView;
-                int color = getResources().getColor(R.color.md_theme_surfaceContainer, getTheme());
+                int color = requireContext().getResources().getColor(R.color.md_theme_surfaceContainer, requireContext().getTheme());
                 card.setCardBackgroundColor(color);
                 card.setCardElevation(4f);
                 card.setScaleX(1f);
@@ -217,8 +218,7 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
             public boolean isLongPressDragEnabled() { return true; }
         };
 
-        itemTouchHelper = new ItemTouchHelper(callback);
-        itemTouchHelper.attachToRecyclerView(binding.recyclerView);
+        new ItemTouchHelper(callback).attachToRecyclerView(binding.recyclerView);
     }
 
     @Override
@@ -227,7 +227,7 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
             return;
         }
 
-        Intent intent = new Intent(this, AddChapterActivity.class);
+        Intent intent = new Intent(requireContext(), AddChapterActivity.class);
         intent.putExtra("chapter_id", chapter.getId());
         intent.putExtra("chapter_title", chapter.getTitle());
         intent.putExtra("chapter_description", chapter.getDescription());
@@ -241,7 +241,7 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
             return;
         }
 
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Delete chapter")
                 .setMessage("Delete \"" + chapter.getTitle() + "\"? Cards inside will NOT be deleted but will become unassigned.")
                 .setPositiveButton("Delete", (d, w) -> deleteChapter(chapter))
@@ -251,15 +251,16 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
 
     @Override
     public void onOpen(Chapter chapter) {
-        Intent intent = new Intent(this, CardsActivity.class);
-        intent.putExtra("chapter_id", chapter.getId());
-        intent.putExtra("chapter_title", chapter.getTitle());
-        startActivity(intent);
+        Bundle args = new Bundle();
+        args.putString("chapter_id", chapter.getId());
+        args.putString("chapter_title", chapter.getTitle());
+        NavHostFragment.findNavController(this).navigate(R.id.action_chapters_to_cards, args);
     }
 
     @Override
     public void onReordered(List<Chapter> reordered) {
         if (!isAdmin) return;
+        Context ctx = requireContext();
         WriteBatch batch = db.batch();
         for (int i = 0; i < reordered.size(); i++) {
             batch.update(
@@ -270,48 +271,21 @@ public class ChaptersActivity extends FaithfullyActivity implements ChapterAdapt
         batch.commit()
                 .addOnSuccessListener(unused -> dbHelper.upsertAll(reordered))
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Failed to save order: " + e.getMessage(),
+                        Toast.makeText(ctx, "Failed to save order: " + e.getMessage(),
                                 Toast.LENGTH_LONG).show());
     }
 
     private void deleteChapter(Chapter chapter) {
+        Context ctx = requireContext();
         db.collection("chapters")
                 .document(chapter.getId())
                 .delete()
                 .addOnSuccessListener(unused -> {
                     dbHelper.delete(chapter.getId());
-                    Toast.makeText(this, "Chapter deleted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Chapter deleted", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(),
+                        Toast.makeText(ctx, "Error: " + e.getMessage(),
                                 Toast.LENGTH_LONG).show());
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int selectedMenuItem = item.getItemId();
-
-        if (selectedMenuItem == R.id.menu_gallery) {
-            Intent galleryActivity = new Intent(this, GalleryActivity.class);
-            startActivity(galleryActivity);
-        }
-
-        if (selectedMenuItem == R.id.menu_about) {
-            Intent aboutIntent = new Intent(this, AboutActivity.class);
-            startActivity(aboutIntent);
-        }
-
-        if (selectedMenuItem == R.id.menu_settings) {
-            Intent settingsIntent = new Intent(this, SettingsActivity.class);
-            startActivity(settingsIntent);
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 }
