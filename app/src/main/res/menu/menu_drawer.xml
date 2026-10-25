@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group
+        android:id="@+id/group_sections"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/homeFragment"
+            android:icon="@drawable/ic_home"
+            android:title="@string/nav_home" />
+        <item
+            android:id="@+id/chaptersFragment"
+            android:icon="@drawable/ic_email"
+            android:title="@string/nav_chapters" />
+        <item
+            android:id="@+id/galleryFragment"
+            android:icon="@drawable/ic_gallery"
+            android:title="@string/nav_gallery" />
+        <item
+            android:id="@+id/voiceFragment"
+            android:icon="@drawable/ic_mic"
+            android:title="@string/nav_voice" />
+    </group>
+
+    <group
+        android:id="@+id/group_app"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/settingsFragment"
+            android:icon="@drawable/ic_settings"
+            android:title="@string/nav_settings" />
+        <item
+            android:id="@+id/aboutFragment"
+            android:icon="@drawable/ic_info"
+            android:title="@string/nav_about" />
+    </group>
+
+    <group android:id="@+id/group_account">
+        <item
+            android:id="@+id/action_sign_out"
+            android:icon="@drawable/ic_logout"
+            android:title="@string/nav_sign_out" />
+    </group>
+</menu>

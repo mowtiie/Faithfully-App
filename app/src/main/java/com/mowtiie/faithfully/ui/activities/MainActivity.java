@@ -2,58 +2,47 @@ package com.mowtiie.faithfully.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.ConcatAdapter;
-import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
+import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.AppBarConfiguration;
+import androidx.navigation.ui.NavigationUI;
 
-import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.WriteBatch;
 import com.mowtiie.faithfully.R;
-import com.mowtiie.faithfully.data.Card;
-import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.databinding.ActivityMainBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
-import com.mowtiie.faithfully.helper.ChapterDbHelper;
-import com.mowtiie.faithfully.helper.DocFields;
-import com.mowtiie.faithfully.helper.MockDataLoader;
-import com.mowtiie.faithfully.helper.NetworkHelper;
-import com.mowtiie.faithfully.ui.adapters.CardAdapter;
-import com.mowtiie.faithfully.ui.adapters.ChapterAdapter;
-import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public class MainActivity extends FaithfullyActivity implements ChapterAdapter.OnChapterActionListener {
+/**
+ * The single host screen: a toolbar, the navigation drawer and the NavHostFragment that shows each
+ * section. Login, the add and edit forms, the letter reader and the photo viewer stay separate screens.
+ */
+public class MainActivity extends FaithfullyActivity {
 
     private ActivityMainBinding binding;
-
-    private FirebaseFirestore db;
-    private ChapterDbHelper dbHelper;
-
-    private ChapterAdapter adapter;
-    private List<Chapter> chapterList;
-    private ItemTouchHelper itemTouchHelper;
-
-    private boolean isDragging = false;
-    private boolean isAdmin;
+    private NavController navController;
+    private AppBarConfiguration appBarConfiguration;
     private AuthHelper.Role role;
+
+    // Sections that are not fragments yet open their old screen from the drawer.
+    private final Map<Integer, Class<?>> legacyScreens = new HashMap<>();
+
+    private OnBackPressedCallback drawerBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,257 +50,120 @@ public class MainActivity extends FaithfullyActivity implements ChapterAdapter.O
         EdgeToEdge.enable(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.content, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
             return insets;
         });
 
         role = AuthHelper.currentRole(this);
-        isAdmin = role == AuthHelper.Role.ADMIN;
-        db = FirebaseFirestore.getInstance();
-        dbHelper = ChapterDbHelper.getInstance(this);
+
+        legacyScreens.put(R.id.chaptersFragment, ChaptersActivity.class);
+        legacyScreens.put(R.id.galleryFragment, GalleryActivity.class);
+        legacyScreens.put(R.id.voiceFragment, VoiceActivity.class);
+        legacyScreens.put(R.id.settingsFragment, SettingsActivity.class);
+        legacyScreens.put(R.id.aboutFragment, AboutActivity.class);
 
         setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
 
-        if (!isAdmin) {
-            binding.fabAdd.hide();
-        } else {
-            binding.fabAdd.setOnClickListener(v -> {
-                Intent addChapterIntent = new Intent(MainActivity.this, AddChapterActivity.class);
-                startActivity(addChapterIntent);
-            });
-        }
+        NavHostFragment host = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        navController = host.getNavController();
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment)
+                .setOpenableLayout(binding.drawerLayout)
+                .build();
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
-        chapterList = new ArrayList<>();
-        adapter = new ChapterAdapter(chapterList, this, isAdmin);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        if (isAdmin) {
-            binding.recyclerView.setAdapter(adapter);
-            setupDragAndDrop();
-        } else {
-            NoticeAdapter noticeAdapter = NoticeAdapter.forRole(this, role);
-            ConcatAdapter concatAdapter = new ConcatAdapter(noticeAdapter, adapter);
-            binding.recyclerView.setAdapter(concatAdapter);
-        }
-
-        if (role == AuthHelper.Role.GUEST) {
-            showMock();
-            return;
-        }
-
-        showCached();
-        listenFirestore();
+        setupDrawer();
     }
 
-    // Guests see the sample chapters and never touch Firestore or the chapter cache.
-    private void showMock() {
-        chapterList.clear();
-        chapterList.addAll(MockDataLoader.getChapters(this));
-        adapter.notifyDataSetChanged();
-        binding.tvEmpty.setVisibility(chapterList.isEmpty() ? View.VISIBLE : View.GONE);
-    }
+    private void setupDrawer() {
+        View header = binding.navView.getHeaderView(0);
+        TextView roleLabel = header.findViewById(R.id.tv_role);
+        roleLabel.setText(role == AuthHelper.Role.ADMIN ? R.string.nav_role_admin
+                : role == AuthHelper.Role.READER ? R.string.nav_role_reader
+                : R.string.nav_role_guest);
 
-    private void showCached() {
-        List<Chapter> cached = dbHelper.getAll();
-        if (!cached.isEmpty()) {
-            chapterList.clear();
-            chapterList.addAll(cached);
-            adapter.notifyDataSetChanged();
-            binding.tvEmpty.setVisibility(View.GONE);
-        }
-    }
+        binding.navView.getMenu().findItem(R.id.action_sign_out)
+                .setTitle(role == AuthHelper.Role.GUEST ? R.string.nav_sign_in : R.string.nav_sign_out);
 
-    private void listenFirestore() {
-        if (NetworkHelper.isOffline(this)) {
-            Toast.makeText(this, "You are currently offline.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.navView.setNavigationItemSelectedListener(this::onDrawerItem);
+        navController.addOnDestinationChangedListener((controller, destination, args) -> markCurrent(destination));
 
-        db.collection("chapters")
-                .orderBy("order", Query.Direction.ASCENDING)
-                .addSnapshotListener(this, (snapshots, error) -> {
-                    binding.progressBar.setVisibility(View.GONE);
-
-                    if (error != null) {
-                        Toast.makeText(this, "Error: " + error.getMessage(),
-                                Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    if (isDragging) return;
-
-                    chapterList.clear();
-                    if (snapshots != null) {
-                        for (QueryDocumentSnapshot doc : snapshots) {
-                            chapterList.add(new Chapter(
-                                    doc.getId(),
-                                    DocFields.string(doc, "title"),
-                                    DocFields.string(doc, "description"),
-                                    DocFields.number(doc, "order", 0)
-                            ));
-                        }
-                        dbHelper.upsertAll(chapterList);
-                    }
-
-                    adapter.notifyDataSetChanged();
-                    binding.tvEmpty.setVisibility(chapterList.isEmpty() ? View.VISIBLE : View.GONE);
-                });
-    }
-
-    private void setupDragAndDrop() {
-        ItemTouchHelper.Callback callback = new ItemTouchHelper.Callback() {
-
+        // Added after the NavHostFragment so it wins over the back stack while the drawer is open.
+        drawerBack = new OnBackPressedCallback(false) {
             @Override
-            public int getMovementFlags(@NonNull RecyclerView rv,
-                                        @NonNull RecyclerView.ViewHolder vh) {
-                return makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
+            public void handleOnBackPressed() {
+                binding.drawerLayout.closeDrawer(GravityCompat.START);
             }
-
-            @Override
-            public boolean onMove(@NonNull RecyclerView rv,
-                                  @NonNull RecyclerView.ViewHolder src,
-                                  @NonNull RecyclerView.ViewHolder tgt) {
-                adapter.moveItem(src.getAbsoluteAdapterPosition(), tgt.getAbsoluteAdapterPosition());
-                return true;
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {}
-
-            @Override
-            public void onSelectedChanged(RecyclerView.ViewHolder vh, int state) {
-                super.onSelectedChanged(vh, state);
-                if (state == ItemTouchHelper.ACTION_STATE_DRAG && vh != null) {
-                    isDragging = true;
-                    MaterialCardView card = (MaterialCardView) vh.itemView;
-                    int color = getResources().getColor(R.color.md_theme_primaryContainer, getTheme());
-                    card.setCardBackgroundColor(color);
-                    card.setCardElevation(24f);
-                    card.setScaleX(1.03f);
-                    card.setScaleY(1.03f);
-                }
-            }
-
-            @Override
-            public void clearView(@NonNull RecyclerView rv,
-                                  @NonNull RecyclerView.ViewHolder vh) {
-                super.clearView(rv, vh);
-                MaterialCardView card = (MaterialCardView) vh.itemView;
-                int color = getResources().getColor(R.color.md_theme_surfaceContainer, getTheme());
-                card.setCardBackgroundColor(color);
-                card.setCardElevation(4f);
-                card.setScaleX(1f);
-                card.setScaleY(1f);
-                isDragging = false;
-                adapter.onDropComplete();
-            }
-
-            @Override
-            public boolean isLongPressDragEnabled() { return true; }
         };
+        getOnBackPressedDispatcher().addCallback(this, drawerBack);
+        binding.drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                drawerBack.setEnabled(true);
+            }
 
-        itemTouchHelper = new ItemTouchHelper(callback);
-        itemTouchHelper.attachToRecyclerView(binding.recyclerView);
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                drawerBack.setEnabled(false);
+            }
+        });
     }
 
-    @Override
-    public void onEdit(Chapter chapter) {
-        if (!isAdmin) {
-            return;
+    private boolean onDrawerItem(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        binding.drawerLayout.closeDrawers();
+
+        if (id == R.id.action_sign_out) {
+            confirmSignOut();
+            return false;
         }
 
-        Intent intent = new Intent(this, AddChapterActivity.class);
-        intent.putExtra("chapter_id", chapter.getId());
-        intent.putExtra("chapter_title", chapter.getTitle());
-        intent.putExtra("chapter_description", chapter.getDescription());
-        intent.putExtra("chapter_order", chapter.getOrder());
-        startActivity(intent);
+        Class<?> legacy = legacyScreens.get(id);
+        if (legacy != null) {
+            startActivity(new Intent(this, legacy));
+            return false;
+        }
+
+        return NavigationUI.onNavDestinationSelected(item, navController);
     }
 
-    @Override
-    public void onDelete(Chapter chapter) {
-        if (!isAdmin) {
+    private void markCurrent(NavDestination destination) {
+        if (binding == null || binding.navView.getMenu().findItem(destination.getId()) == null) return;
+        binding.navView.setCheckedItem(destination.getId());
+    }
+
+    private void confirmSignOut() {
+        if (role == AuthHelper.Role.GUEST) {
+            AuthHelper.setGuestMode(this, false);
+            goToLogin();
             return;
         }
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Delete chapter")
-                .setMessage("Delete \"" + chapter.getTitle() + "\"? Cards inside will NOT be deleted but will become unassigned.")
-                .setPositiveButton("Delete", (d, w) -> deleteChapter(chapter))
+                .setTitle("Sign out")
+                .setMessage("Sign out and return to the login screen?")
+                .setPositiveButton("Sign out", (d, w) -> {
+                    AuthHelper.signOutEverything(this);
+                    goToLogin();
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    @Override
-    public void onOpen(Chapter chapter) {
-        Intent intent = new Intent(this, CardsActivity.class);
-        intent.putExtra("chapter_id", chapter.getId());
-        intent.putExtra("chapter_title", chapter.getTitle());
-        startActivity(intent);
+    private void goToLogin() {
+        startActivity(new Intent(this, LoginActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
     }
 
     @Override
-    public void onReordered(List<Chapter> reordered) {
-        if (!isAdmin) return;
-        WriteBatch batch = db.batch();
-        for (int i = 0; i < reordered.size(); i++) {
-            batch.update(
-                    db.collection("chapters").document(reordered.get(i).getId()),
-                    "order", (long) i
-            );
-        }
-        batch.commit()
-                .addOnSuccessListener(unused -> dbHelper.upsertAll(reordered))
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Failed to save order: " + e.getMessage(),
-                                Toast.LENGTH_LONG).show());
-    }
-
-    private void deleteChapter(Chapter chapter) {
-        db.collection("chapters")
-                .document(chapter.getId())
-                .delete()
-                .addOnSuccessListener(unused -> {
-                    dbHelper.delete(chapter.getId());
-                    Toast.makeText(this, "Chapter deleted", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(),
-                                Toast.LENGTH_LONG).show());
+    public boolean onSupportNavigateUp() {
+        return NavigationUI.navigateUp(navController, appBarConfiguration) || super.onSupportNavigateUp();
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int selectedMenuItem = item.getItemId();
-
-        if (selectedMenuItem == R.id.menu_gallery) {
-            Intent galleryActivity = new Intent(this, GalleryActivity.class);
-            startActivity(galleryActivity);
-        }
-
-        if (selectedMenuItem == R.id.menu_about) {
-            Intent aboutIntent = new Intent(this, AboutActivity.class);
-            startActivity(aboutIntent);
-        }
-
-        if (selectedMenuItem == R.id.menu_settings) {
-            Intent settingsIntent = new Intent(this, SettingsActivity.class);
-            startActivity(settingsIntent);
-        }
-
-        return super.onOptionsItemSelected(item);
+    protected void onDestroy() {
+        super.onDestroy();
+        binding = null;
     }
 }

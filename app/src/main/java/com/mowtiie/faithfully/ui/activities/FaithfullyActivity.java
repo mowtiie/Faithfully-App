@@ -37,4 +37,11 @@ public class FaithfullyActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
     }
+
+    // Up behaves like Back: with one host screen, a parent screen would reopen it at Home.
+    @Override
+    public boolean onSupportNavigateUp() {
+        getOnBackPressedDispatcher().onBackPressed();
+        return true;
+    }
 }

@@ -107,7 +107,7 @@ public class LoginActivity extends FaithfullyActivity {
     }
 
     private void goToMain() {
-        startActivity(new Intent(this, HomeActivity.class));
+        startActivity(new Intent(this, MainActivity.class));
         finish();
     }
 }

@@ -21,8 +21,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Faithfully">
         <activity
-            android:name=".ui.activities.HomeActivity"
-            android:exported="false" />
+            android:name=".ui.activities.MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.PhotoViewerActivity"
             android:exported="false"
@@ -35,7 +36,7 @@
         <activity
             android:name=".ui.activities.GalleryActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.HomeActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.ReaderActivity"
             android:exported="false"
@@ -48,16 +49,16 @@
         <activity
             android:name=".ui.activities.VoiceActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.HomeActivity" />
+            android:parentActivityName=".ui.activities.MainActivity" />
         <activity
             android:name=".ui.activities.AboutActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.HomeActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.SettingsActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.HomeActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.AddCardActivity"
@@ -67,17 +68,17 @@
         <activity
             android:name=".ui.activities.CardsActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.MainActivity"
+            android:parentActivityName=".ui.activities.ChaptersActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.AddChapterActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.MainActivity"
+            android:parentActivityName=".ui.activities.ChaptersActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ui.activities.MainActivity"
+            android:name=".ui.activities.ChaptersActivity"
             android:exported="false"
-            android:parentActivityName=".ui.activities.HomeActivity"
+            android:parentActivityName=".ui.activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.LoginActivity"

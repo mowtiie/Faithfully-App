@@ -1,33 +1,29 @@
-package com.mowtiie.faithfully.ui.activities;
+package com.mowtiie.faithfully.ui.fragments;
 
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.mowtiie.faithfully.R;
-import com.mowtiie.faithfully.databinding.ActivityHomeBinding;
+import com.mowtiie.faithfully.databinding.FragmentHomeBinding;
 import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.AuthHelper.Role;
 import com.mowtiie.faithfully.helper.HomeContentResolver;
@@ -37,16 +33,17 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Home screen, mirroring the website's js/home.js. ADMIN and READER read settings/home;
- * GUEST sees the built-in sample content and never touches Firestore. Read-only for everyone.
+ * Home, mirroring the website's js/home.js: a welcome with the days-together counter and the countdown.
+ * ADMIN and READER read settings/home; GUEST sees the built-in sample content and never touches
+ * Firestore. Read-only for every role.
  */
-public class HomeActivity extends FaithfullyActivity {
+public class HomeFragment extends Fragment {
 
-    private static final String TAG = "HomeActivity";
+    private static final String TAG = "HomeFragment";
     private static final String PREFS = "home_prefs";
     private static final String KEY_GUEST_FIRST_VISIT = "guest_first_visit";
 
-    private ActivityHomeBinding binding;
+    private FragmentHomeBinding binding;
     private Role role;
     private boolean signedIn;
 
@@ -68,44 +65,38 @@ public class HomeActivity extends FaithfullyActivity {
         }
     };
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        binding = ActivityHomeBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        binding = FragmentHomeBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        role = AuthHelper.currentRole(this);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        role = AuthHelper.currentRole(requireContext());
         signedIn = role != Role.GUEST;
-        defaults = MockDataLoader.getHomeDefaults(this);
+        settingsResolved = false;
+        settings = null;
+        defaults = MockDataLoader.getHomeDefaults(requireContext());
         if (!signedIn) guestStart = guestFirstVisit();
-
-        setSupportActionBar(binding.toolbar);
 
         if (role != Role.ADMIN && !isBannerDismissed()) {
             binding.tvBanner.setText(role == Role.READER ? R.string.notice_reader : R.string.notice_guest);
             binding.bannerCard.setVisibility(View.VISIBLE);
             binding.btnBannerDismiss.setOnClickListener(v -> {
-                getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                        .putBoolean(bannerKey(), true).apply();
+                prefs().edit().putBoolean(bannerKey(), true).apply();
                 binding.bannerCard.setVisibility(View.GONE);
             });
         }
-
-        binding.btnChapters.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
-        binding.btnGallery.setOnClickListener(v -> startActivity(new Intent(this, GalleryActivity.class)));
-        binding.btnVoice.setOnClickListener(v -> startActivity(new Intent(this, VoiceActivity.class)));
 
         render();
     }
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         if (signedIn) watchSettings();
         handler.post(ticker);
@@ -113,7 +104,7 @@ public class HomeActivity extends FaithfullyActivity {
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         super.onStop();
         handler.removeCallbacks(ticker);
         stopAnimator(skeletonPulse);
@@ -127,9 +118,13 @@ public class HomeActivity extends FaithfullyActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroyView() {
+        super.onDestroyView();
         binding = null;
+    }
+
+    private SharedPreferences prefs() {
+        return requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     private void watchSettings() {
@@ -168,9 +163,9 @@ public class HomeActivity extends FaithfullyActivity {
         return ts != null ? ts.toDate() : null;
     }
 
-    /** Guests count from the first time they opened the app, like the website's demoFirstVisit. */
+    /** Guests count from the first time they opened Home, like the website's demoFirstVisit. */
     private Date guestFirstVisit() {
-        SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        SharedPreferences prefs = prefs();
         long stored = prefs.getLong(KEY_GUEST_FIRST_VISIT, 0);
         if (stored == 0) {
             stored = System.currentTimeMillis();
@@ -180,7 +175,7 @@ public class HomeActivity extends FaithfullyActivity {
     }
 
     private void render() {
-        if (binding == null) return;
+        if (binding == null || defaults == null) return;
 
         // Signed-in users wait for the first snapshot so sample text doesn't flash before real text.
         boolean pending = signedIn && !settingsResolved;
@@ -236,7 +231,7 @@ public class HomeActivity extends FaithfullyActivity {
     }
 
     private boolean isBannerDismissed() {
-        return getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(bannerKey(), false);
+        return prefs().getBoolean(bannerKey(), false);
     }
 
     private void startSkeletonPulse() {
@@ -266,46 +261,5 @@ public class HomeActivity extends FaithfullyActivity {
 
     private static String pad(long value) {
         return String.format(Locale.getDefault(), "%02d", value);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_home, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.menu_about) {
-            startActivity(new Intent(this, AboutActivity.class));
-        } else if (id == R.id.menu_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
-        } else if (id == R.id.menu_logout) {
-            if (signedIn) {
-                showLogoutDialog();
-            } else {
-                AuthHelper.setGuestMode(this, false);
-                goToLogin();
-            }
-        }
-        return true;
-    }
-
-    private void showLogoutDialog() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Sign out")
-                .setMessage("Sign out and return to the login screen?")
-                .setPositiveButton("Sign out", (d, w) -> {
-                    AuthHelper.signOutEverything(this);
-                    goToLogin();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void goToLogin() {
-        startActivity(new Intent(this, LoginActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
     }
 }

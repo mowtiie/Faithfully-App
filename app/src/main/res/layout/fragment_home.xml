@@ -1,32 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/main"
+    android:id="@+id/content"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-    <com.google.android.material.appbar.AppBarLayout
-        app:liftOnScroll="true"
-        android:fitsSystemWindows="true"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            app:title="@string/home_title"
-            app:titleCentered="true"
-            app:titleTextColor="?attr/colorOnSurface"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:menu="@menu/menu_home"/>
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/content"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <!-- Caps the content width on tablets and centers it -->
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -398,138 +376,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Navigation cards -->
-            <LinearLayout
-                android:orientation="horizontal"
-                android:baselineAligned="false"
-                android:layout_marginTop="16dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btn_chapters"
-                    style="@style/Widget.Material3.CardView.Filled"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="?attr/colorSecondaryContainer"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:layout_height="wrap_content">
-                    <LinearLayout
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                        <ImageView
-                            android:src="@drawable/ic_email"
-                            android:importantForAccessibility="no"
-                            app:tint="?attr/colorOnSecondaryContainer"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_chapters"
-                            android:layout_marginTop="12dp"
-                            android:textColor="?attr/colorOnSecondaryContainer"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_chapters_desc"
-                            android:textColor="?attr/colorOnSecondaryContainer"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btn_gallery"
-                    style="@style/Widget.Material3.CardView.Filled"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="?attr/colorTertiaryContainer"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:layout_height="wrap_content">
-                    <LinearLayout
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                        <ImageView
-                            android:src="@drawable/ic_gallery"
-                            android:importantForAccessibility="no"
-                            app:tint="?attr/colorOnTertiaryContainer"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_gallery"
-                            android:layout_marginTop="12dp"
-                            android:textColor="?attr/colorOnTertiaryContainer"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_gallery_desc"
-                            android:textColor="?attr/colorOnTertiaryContainer"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-
-            <LinearLayout
-                android:orientation="horizontal"
-                android:baselineAligned="false"
-                android:layout_marginTop="16dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btn_voice"
-                    style="@style/Widget.Material3.CardView.Filled"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:layout_height="match_parent">
-                    <LinearLayout
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                        <ImageView
-                            android:src="@drawable/ic_mic"
-                            android:importantForAccessibility="no"
-                            app:tint="?attr/colorOnSurface"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_voice"
-                            android:layout_marginTop="12dp"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <com.google.android.material.textview.MaterialTextView
-                            android:text="@string/home_voice_desc"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-            </LinearLayout>
         </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.core.widget.NestedScrollView>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.core.widget.NestedScrollView>
