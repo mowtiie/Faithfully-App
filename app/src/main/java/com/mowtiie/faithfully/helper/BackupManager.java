@@ -2,6 +2,7 @@ package com.mowtiie.faithfully.helper;
 
 import android.app.Activity;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.EditText;
@@ -55,12 +56,14 @@ public class BackupManager {
     private static final String   SETTINGS      = "settings";
     private static final String   SETTINGS_ID   = "home";
     private static final String   GALLERY       = "gallery";
-    private static final String[] SECTIONS      = { "chapters", "cards", GALLERY, "apps", SETTINGS };
+    private static final String   VOICE         = "voice";
+    private static final String[] SECTIONS      = { "chapters", "cards", GALLERY, "apps", VOICE, SETTINGS };
     private static final String[] CLEAR_COLLECTIONS = { "cards", "chapters", GALLERY };
 
     private static final int    BACKUP_VERSION = 1;
     private static final String DATA_JSON      = "data.json";
     private static final String IMAGES_DIR     = "images/";
+    private static final String AUDIO_DIR      = "audio/";
     private static final int    BATCH_SIZE     = 400;
 
     private static final String K_VERSION     = "version";
@@ -68,6 +71,7 @@ public class BackupManager {
     private static final String K_ID          = "_id";
     private static final String K_ZIP_FULL    = "_zipFull";
     private static final String K_ZIP_THUMB   = "_zipThumb";
+    private static final String K_ZIP_AUDIO   = "_zipAudio";
 
     private static final Set<String> TIMESTAMP_FIELDS = new HashSet<>(Arrays.asList(
             "date", "uploadedAt", "createdAt", "countdownTarget", "anniversaryStart"));
@@ -136,22 +140,30 @@ public class BackupManager {
         executor.execute(() -> {
             if (!isAdmin()) return;
             try {
-                int skipped = writeZip(uri, fetchAll(SECTIONS));
-                toastLong(skipped == 0
+                int[] skipped = writeZip(uri, fetchAll(SECTIONS));
+                toastLong(skipped[0] == 0 && skipped[1] == 0
                         ? "Backup exported 🌻"
-                        : "Backup exported, but " + skipped + " photo(s) could not be downloaded");
+                        : "Backup exported, but " + skippedSummary(skipped[0], skipped[1]) + " could not be downloaded");
             } catch (Exception e) {
                 activity.runOnUiThread(() -> onError("Export failed", e));
             }
         });
     }
 
-    /** Returns how many photos could not be included. */
-    private int writeZip(Uri uri, Map<String, List<Doc>> all) throws Exception {
+    private static String skippedSummary(int photos, int recordings) {
+        List<String> parts = new ArrayList<>();
+        if (photos > 0)     parts.add(photos + " photo(s)");
+        if (recordings > 0) parts.add(recordings + " recording(s)");
+        return TextUtils.join(" and ", parts);
+    }
+
+    /** Returns how many photos and how many recordings could not be included. */
+    private int[] writeZip(Uri uri, Map<String, List<Doc>> all) throws Exception {
         OutputStream fileOut = activity.getContentResolver().openOutputStream(uri);
         if (fileOut == null) throw new Exception("openOutputStream returned null");
 
         int skipped = 0;
+        int skippedAudio = 0;
         try (ZipOutputStream zip = new ZipOutputStream(fileOut)) {
             JSONObject root = new JSONObject();
             root.put(K_VERSION,     BACKUP_VERSION);
@@ -163,6 +175,7 @@ public class BackupManager {
                 for (Doc d : gallery) if (str(d.data.get("imageUrl")) != null) photoTotal++;
             }
             int photoIndex = 0;
+            int audioIndex = 0;
 
             for (String name : SECTIONS) {
                 JSONArray arr = new JSONArray();
@@ -177,6 +190,12 @@ public class BackupManager {
                             toast("Downloading image " + (++photoIndex) + " of " + photoTotal + "...");
                             if (!addPhotoToZip(zip, doc, obj, imageUrl)) skipped++;
                         }
+
+                        String audioPath = VOICE.equals(name) ? str(doc.data.get("audioPath")) : null;
+                        if (audioPath != null) {
+                            toast("Downloading recording " + (++audioIndex) + "...");
+                            if (!addAudioToZip(zip, doc, obj, audioPath)) skippedAudio++;
+                        }
                         arr.put(obj);
                     }
                 }
@@ -188,7 +207,26 @@ public class BackupManager {
             zip.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
         }
-        return skipped;
+        return new int[]{ skipped, skippedAudio };
+    }
+
+    /** Recordings have no public address, so they come down through the Worker. */
+    private boolean addAudioToZip(ZipOutputStream zip, Doc doc, JSONObject obj, String audioPath)
+            throws IOException, JSONException {
+        byte[] audio;
+        try {
+            audio = VoiceStorageHelper.downloadBytes(activity, audioPath);
+        } catch (Exception e) {
+            Log.w(TAG, "Recording not included: " + doc.id, e);
+            return false;
+        }
+
+        String file = doc.id + "." + VoiceFormat.extensionOfKey(audioPath);
+        zip.putNextEntry(new ZipEntry(AUDIO_DIR + file));
+        zip.write(audio);
+        zip.closeEntry();
+        obj.put(K_ZIP_AUDIO, file);
+        return true;
     }
 
     /** Photos come down by URL, so R2 and legacy Firebase photos export the same way. */
@@ -302,6 +340,8 @@ public class BackupManager {
                 StringBuilder msg = new StringBuilder("Restore complete 🌻");
                 if (results[0] > 0) msg.append("\n").append(results[0]).append(" photo(s) could not be restored.");
                 if (results[1] > 0) msg.append("\n").append(results[1]).append(" old photo file(s) could not be removed.");
+                if (results[2] > 0) msg.append("\n").append(results[2]).append(" recording(s) could not be restored.");
+                if (results[3] > 0) msg.append("\n").append(results[3]).append(" old recording file(s) could not be removed.");
                 toastLong(msg.toString());
             } catch (Exception e) {
                 activity.runOnUiThread(() -> onError("Import failed", e));
@@ -342,11 +382,14 @@ public class BackupManager {
 
     /**
      * Uploads and writes first, removes old files last, so a failure part-way never
-     * leaves the gallery pointing at deleted photos. Returns {failedPhotos, leftoverFiles}.
+     * leaves the gallery pointing at deleted photos. Returns
+     * {failedPhotos, leftoverPhotoFiles, failedRecordings, leftoverRecordingFiles}.
      */
     private int[] restore(Map<String, List<JSONObject>> parsed, @Nullable ZipFile zip,
                           Map<String, List<Doc>> current) throws Exception {
         int failedPhotos = 0;
+        int failedAudio = 0;
+        List<String> staleAudio = new ArrayList<>();
 
         Map<String, Map<String, Object>> finalGallery = new HashMap<>();
         for (Doc d : current.get(GALLERY)) finalGallery.put(d.id, d.data);
@@ -366,6 +409,21 @@ public class BackupManager {
 
                 Map<String, Object> fields = toFields(obj);
                 String zipFull = obj.optString(K_ZIP_FULL, "");
+
+                String zipAudio = obj.optString(K_ZIP_AUDIO, "");
+                String audioPath = str(fields.get("audioPath"));
+                if (VOICE.equals(name) && !zipAudio.isEmpty() && audioPath != null && zip != null
+                        && zip.getEntry(AUDIO_DIR + zipAudio) != null && VoiceFormat.isVoiceKey(audioPath)) {
+                    toast("Uploading recording " + (i + 1) + " of " + entries.size() + "...");
+                    try {
+                        byte[] audio = readEntry(zip, AUDIO_DIR + zipAudio);
+                        VoiceStorageHelper.upload(activity, audioPath, audio, VoiceFormat.mimeForKey(audioPath));
+                    } catch (IOException e) {
+                        Log.w(TAG, "Recording not restored: " + id, e);
+                        failedAudio++;
+                        continue;
+                    }
+                }
 
                 if (GALLERY.equals(name) && !zipFull.isEmpty() && zip != null
                         && zip.getEntry(IMAGES_DIR + zipFull) != null) {
@@ -401,6 +459,25 @@ public class BackupManager {
             for (Doc d : current.get(name)) if (!backupIds.contains(d.id)) stale.add(d.id);
             commitDeletes(name, stale);
             if (GALLERY.equals(name)) for (String id : stale) finalGallery.remove(id);
+            if (VOICE.equals(name)) {
+                for (Doc d : current.get(name)) {
+                    String path = str(d.data.get("audioPath"));
+                    if (!backupIds.contains(d.id) && path != null) staleAudio.add(path);
+                }
+            }
+        }
+
+        int leftoverAudio = 0;
+        if (!staleAudio.isEmpty()) {
+            toast("Cleaning up old recordings...");
+            for (String path : staleAudio) {
+                try {
+                    VoiceStorageHelper.delete(activity, path);
+                } catch (IOException e) {
+                    Log.w(TAG, "Old recording not removed: " + path, e);
+                    leftoverAudio++;
+                }
+            }
         }
 
         int leftover = 0;
@@ -408,7 +485,7 @@ public class BackupManager {
             toast("Cleaning up old photo files...");
             leftover = removeReplacedPhotoFiles(current.get(GALLERY), finalGallery);
         }
-        return new int[]{ failedPhotos, leftover };
+        return new int[]{ failedPhotos, leftover, failedAudio, leftoverAudio };
     }
 
     /** Removes files of photos that were replaced or dropped; returns how many R2 files are left behind. */
@@ -458,6 +535,7 @@ public class BackupManager {
         fields.remove(K_ID);
         fields.remove(K_ZIP_FULL);
         fields.remove(K_ZIP_THUMB);
+        fields.remove(K_ZIP_AUDIO);
         for (String key : TIMESTAMP_FIELDS) {
             Object v = fields.get(key);
             if (v instanceof Number) fields.put(key, new Timestamp(new Date(((Number) v).longValue())));
