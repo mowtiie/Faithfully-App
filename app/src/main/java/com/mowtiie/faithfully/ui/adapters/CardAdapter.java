@@ -24,6 +24,7 @@ import java.util.List;
 public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder> {
 
     public interface OnCardActionListener {
+        void onRead(Card card);
         void onEdit(Card card);
         void onDelete(Card card);
         void onChangeChapter(Card card);
@@ -74,19 +75,21 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
         holder.layoutActions.setVisibility(View.GONE);
         holder.divider.setVisibility(View.GONE);
 
+        // Readers open the full-screen reader; the admin keeps the expandable card with its edit actions.
         holder.cardView.setOnClickListener(v -> {
+            if (!isAdmin) {
+                listener.onRead(card);
+                return;
+            }
+
             boolean expanded = holder.tvMessage.getVisibility() == View.VISIBLE;
             holder.tvMessage.setVisibility(expanded ? View.GONE : View.VISIBLE);
             holder.divider.setVisibility(expanded ? View.GONE : View.VISIBLE);
-
-            if (isAdmin) {
-                holder.layoutActions.setVisibility(expanded ? View.GONE : View.VISIBLE);
-            } else {
-                holder.layoutActions.setVisibility(View.GONE);
-            }
+            holder.layoutActions.setVisibility(expanded ? View.GONE : View.VISIBLE);
         });
 
         if (isAdmin) {
+            holder.btnRead.setOnClickListener(v -> listener.onRead(card));
             holder.btnChangeChapter.setOnClickListener(v -> listener.onChangeChapter(card));
             holder.btnEdit.setOnClickListener(v   -> listener.onEdit(card));
             holder.btnDelete.setOnClickListener(v -> listener.onDelete(card));
@@ -109,7 +112,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
         TextView tvTitle, tvDate, tvMessage;
         Chip chipChapter;
         View layoutActions;
-        MaterialButton btnChangeChapter, btnEdit, btnDelete;
+        MaterialButton btnRead, btnChangeChapter, btnEdit, btnDelete;
 
         CardViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -120,6 +123,7 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder
             tvMessage = itemView.findViewById(R.id.tv_message);
             chipChapter = itemView.findViewById(R.id.chip_chapter);
             layoutActions = itemView.findViewById(R.id.layout_actions);
+            btnRead = itemView.findViewById(R.id.btn_read);
             btnChangeChapter = itemView.findViewById(R.id.btn_change_chapter);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);

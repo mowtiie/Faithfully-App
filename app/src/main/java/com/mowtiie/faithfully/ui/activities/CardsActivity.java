@@ -35,6 +35,7 @@ import com.mowtiie.faithfully.helper.AuthHelper;
 import com.mowtiie.faithfully.helper.ChapterDbHelper;
 import com.mowtiie.faithfully.helper.DocFields;
 import com.mowtiie.faithfully.helper.MockDataLoader;
+import com.mowtiie.faithfully.helper.ReaderSession;
 import com.mowtiie.faithfully.ui.adapters.CardAdapter;
 import com.mowtiie.faithfully.ui.adapters.ChapterBottomSheetAdapter;
 import com.mowtiie.faithfully.ui.adapters.NoticeAdapter;
@@ -212,6 +213,14 @@ public class CardsActivity extends FaithfullyActivity implements CardAdapter.OnC
                     adapter.notifyDataSetChanged();
                     binding.tvEmpty.setVisibility(cardList.isEmpty() ? View.VISIBLE : View.GONE);
                 });
+    }
+
+    @Override
+    public void onRead(Card card) {
+        ReaderSession.set(chapterTitle, cardList);
+        Intent intent = new Intent(this, ReaderActivity.class);
+        intent.putExtra(ReaderActivity.EXTRA_INDEX, Math.max(0, cardList.indexOf(card)));
+        startActivity(intent);
     }
 
     @Override
