@@ -59,6 +59,7 @@ public class AuthHelper {
         setGuestMode(ctx, false);
         // The cached chapters belong to the signed-in session; later guests must not see them.
         ChapterDbHelper.getInstance(ctx).clearAll();
+        VoiceStorageHelper.clearCache(ctx);
     }
 
     private static SharedPreferences prefs(Context ctx) {

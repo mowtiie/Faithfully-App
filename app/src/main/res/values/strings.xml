@@ -25,6 +25,41 @@
     <string name="home_countdown_desc">%1$d days, %2$d hours, %3$d minutes, %4$d seconds</string>
     <string name="home_chapters_desc">Read the chapters</string>
     <string name="home_gallery_desc">Browse the photos</string>
+    <string name="home_voice">Voice</string>
+    <string name="home_voice_desc">Listen to our little voice messages</string>
+
+    <!-- VOICE -->
+    <string name="voice_title">Voice</string>
+    <string name="voice_empty">There are no recordings yet. 🎙️</string>
+    <string name="voice_record">Record a voice message</string>
+    <string name="voice_play">Play recording</string>
+    <string name="voice_pause">Pause recording</string>
+    <string name="voice_loading">Loading recording</string>
+    <string name="voice_untitled">Voice message</string>
+    <string name="voice_just_now">Just now</string>
+    <string name="voice_sample">Sample</string>
+    <string name="voice_sent_by">Sent by %1$s</string>
+    <string name="voice_actions">Recording Actions</string>
+    <string name="voice_edit_caption">Edit caption</string>
+    <string name="voice_delete">Delete recording</string>
+    <string name="voice_delete_title">Delete recording</string>
+    <string name="voice_delete_message">The recording will be removed for good.</string>
+    <string name="voice_play_failed">Could not play this recording.</string>
+    <string name="voice_new_title">New voice message</string>
+    <string name="voice_start_recording">Start recording</string>
+    <string name="voice_stop_recording">Stop recording</string>
+    <string name="voice_hint_idle">Tap to record, up to %1$s</string>
+    <string name="voice_hint_recording">Recording… tap to stop</string>
+    <string name="voice_play_preview">Play</string>
+    <string name="voice_stop_preview">Stop</string>
+    <string name="voice_record_again">Record again</string>
+    <string name="voice_caption_hint">Caption (optional)</string>
+    <string name="voice_save">Save</string>
+    <string name="voice_permission_denied">Microphone access was blocked. Allow it in your phone settings to record.</string>
+    <string name="voice_permission_needed">The microphone is needed to record a message.</string>
+    <string name="voice_too_short">That was too short. Try again.</string>
+    <string name="voice_too_large">That recording is too large. Try a shorter one.</string>
+    <string name="voice_record_failed">Could not record. Try again.</string>
 
     <!-- MENU ITEMS -->
     <string name="menu_item_about">About</string>
@@ -53,7 +88,7 @@
     <!-- BACKUP PREFERENCES -->
     <string name="preference_backup_category_import_export">Import &amp; Export</string>
     <string name="preference_backup_export">Export</string>
-    <string name="preference_backup_export_summary">Save all chapters, letters, and gallery photos to a single .zip archive.</string>
+    <string name="preference_backup_export_summary">Save all chapters, letters, gallery photos, and voice recordings to a single .zip archive.</string>
     <string name="preference_backup_restore">Restore</string>
     <string name="preference_backup_restore_summary">Load a previous backup (.zip or legacy .json). This will overwrite current data.</string>
     <string name="preference_backup_category_danger_zone">Danger Zone</string>

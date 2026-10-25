@@ -27,6 +27,11 @@ public final class DocFields {
         return v instanceof Number ? ((Number) v).longValue() : fallback;
     }
 
+    public static double decimal(DocumentSnapshot doc, String field, double fallback) {
+        Object v = doc.get(field);
+        return v instanceof Number ? ((Number) v).doubleValue() : fallback;
+    }
+
     @Nullable
     public static Timestamp timestamp(DocumentSnapshot doc, String field) {
         Object v = doc.get(field);

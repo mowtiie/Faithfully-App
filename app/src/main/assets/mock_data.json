@@ -85,5 +85,13 @@
       "imageUrl":     "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=1200",
       "thumbnailUrl": "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=400"
     }
+  ],
+
+  "voicePlayers": { "mock-a": "🐝", "mock-b": "🌻" },
+
+  "voice": [
+    { "id": "mock-v-1", "uid": "mock-a", "caption": "A sample good morning",                         "duration": 12 },
+    { "id": "mock-v-2", "uid": "mock-b", "caption": "Another sample, just to show the layout",       "duration": 27 },
+    { "id": "mock-v-3", "uid": "mock-a", "caption": "Real recordings are only for the two of us 🌻", "duration": 8 }
   ]
 }

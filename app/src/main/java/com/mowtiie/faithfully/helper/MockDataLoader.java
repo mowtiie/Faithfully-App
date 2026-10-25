@@ -8,6 +8,7 @@ import com.google.firebase.Timestamp;
 import com.mowtiie.faithfully.data.Card;
 import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.data.Photo;
+import com.mowtiie.faithfully.data.VoiceClip;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,7 +22,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class MockDataLoader {
 
@@ -31,6 +35,8 @@ public class MockDataLoader {
     private static List<Chapter> cachedChapters;
     private static List<Card> cachedCards;
     private static List<Photo> cachedPhotos;
+    private static List<VoiceClip> cachedVoice;
+    private static Map<String, String> cachedVoicePlayers;
     private static HomeContentResolver.Text cachedHome = HomeContentResolver.Text.fallback();
     private static boolean loaded = false;
 
@@ -66,12 +72,24 @@ public class MockDataLoader {
         return copy;
     }
 
+    public static List<VoiceClip> getVoice(Context ctx) {
+        ensureLoaded(ctx);
+        return new ArrayList<>(cachedVoice);
+    }
+
+    public static Map<String, String> getVoicePlayers(Context ctx) {
+        ensureLoaded(ctx);
+        return new HashMap<>(cachedVoicePlayers);
+    }
+
     private static synchronized void ensureLoaded(Context ctx) {
         if (loaded) return;
 
         cachedChapters = new ArrayList<>();
         cachedCards    = new ArrayList<>();
         cachedPhotos   = new ArrayList<>();
+        cachedVoice    = new ArrayList<>();
+        cachedVoicePlayers = new HashMap<>();
 
         try {
             String json = readAsset(ctx, ASSET_PATH);
@@ -126,6 +144,30 @@ public class MockDataLoader {
                         Timestamp.now(),
                         null, null
                 ));
+            }
+
+            JSONObject players = root.optJSONObject("voicePlayers");
+            if (players != null) {
+                Iterator<String> uids = players.keys();
+                while (uids.hasNext()) {
+                    String uid = uids.next();
+                    cachedVoicePlayers.put(uid, players.optString(uid));
+                }
+            }
+
+            JSONArray vArr = root.optJSONArray("voice");
+            if (vArr != null) {
+                for (int i = 0; i < vArr.length(); i++) {
+                    JSONObject o = vArr.getJSONObject(i);
+                    cachedVoice.add(new VoiceClip(
+                            o.getString("id"),
+                            null,
+                            o.optString("caption", ""),
+                            o.optDouble("duration", 0),
+                            o.optString("uid", null),
+                            null
+                    ));
+                }
             }
 
             loaded = true;

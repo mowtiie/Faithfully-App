@@ -4,6 +4,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <application
         android:name=".FaithfullyApp"
@@ -29,6 +34,15 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activities.GalleryActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.HomeActivity" />
+        <activity
+            android:name=".ui.activities.AddVoiceActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.VoiceActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.VoiceActivity"
             android:exported="false"
             android:parentActivityName=".ui.activities.HomeActivity" />
         <activity
