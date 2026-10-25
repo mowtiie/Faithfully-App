@@ -12,7 +12,7 @@ An Android app for managing content on the Faithfully-Web sister project. Java +
 
 `AuthHelper.currentRole()` returns one of three values, defined in `AuthHelper.Role` enum:
 
-- **`ADMIN`**: signed in as the admin UID (owner). Full CRUD. Sees FAB, edit menus, drag-to-reorder, and the Apps and gallery editors.
+- **`ADMIN`**: signed in as the admin UID (owner). Full CRUD. Sees FAB, edit menus, drag-to-reorder, and the gallery editors.
 - **`READER`**: signed in as Ali's UID. Reads real Firestore data. **No writes, with one deliberate exception: she can record voice clips for herself** (`AddVoiceActivity`, see "Voice"). No edit affordances. Shows a "🩷 Signed in (read-only)" banner via `NoticeAdapter` (not on the Voice screen, where she can add).
 - **`GUEST`**: everyone else (not signed in, or signed in as a non-allowlisted UID). Sees mock data loaded from `assets/mock_data.json` by `MockDataLoader`. No writes. Shows a "👀 Demo mode (showing sample content)" banner.
 
@@ -43,8 +43,6 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 | `GalleryActivity` | Photo grid + lightbox trigger | Branches by role |
 | `AddChapterActivity` / `AddCardActivity` | CRUD screens | Admin only (implicit, since non-admins can't get here) |
 | `AddPhotoActivity` | Choose up to 20 photos, a caption each, upload with per-photo status and retry | Admin only |
-| `AppsActivity` | Apps showcase (built-in list until saved), download and source links | ADMIN edits, moves and deletes; READER and GUEST read-only |
-| `AddAppActivity` | Add or edit an app | Admin only |
 | `VoiceActivity` | Voice clips list with playback | ADMIN edits/deletes; READER plays and records; GUEST sample clips, playback off |
 | `AddVoiceActivity` | Record, preview, caption and save a clip | ADMIN and READER only |
 | `ReaderActivity` | Full-screen letter reader: swipe or Previous/Next through a chapter's letters, progress bar, "Back to chapter" on the last one | All roles. READER and GUEST open it by tapping a letter; ADMIN uses the Read button on the expanded card (tapping expands it for the edit actions) |
@@ -75,7 +73,7 @@ The allow-list UIDs are `AuthHelper.ADMIN_UID` and `AuthHelper.ALI_UID`.
 ## Firebase configuration
 
 - Same Firebase project as the website (`faithfully-ac2cd`).
-- Firestore collections: `chapters`, `cards`, `gallery`, `voice`, `apps` (and `settings`, `draw` which the website owns).
+- Firestore collections: `chapters`, `cards`, `gallery`, `voice` (and `apps`, `settings`, `draw` which only the website uses).
 - Photos live in Cloudflare R2, not Firebase Storage: see "R2 photo storage" below. Existing photos may still point at Firebase Storage (legacy).
 - Security rules enforced server-side. Activities also enforce via role checks in UI.
 - Composite index needed for `cards` collection: `chapterId` ASC + `order` ASC. Created via clickable link in the FAILED_PRECONDITION error.
@@ -118,15 +116,6 @@ Mirrors the website's Voice section (`js/voice.js`, `js/voice-recorder.js`).
 - Set toolbar titles through `getSupportActionBar()`, not `binding.toolbar.setTitle`: after `setSupportActionBar` the toolbar title is reset to the app name.
 - Not done yet compared with the website: next-chapter at the end of the reader, print, and pinch-to-zoom in the photo viewer.
 
-## Apps
-
-Mirrors the website's Apps section (`js/apps.js`, `js/apps-admin.js`, `js/data/apps.js`).
-
-- **Data:** Firestore `apps/{id}`: `{ name, tagline, description, version, icon (emoji), iconImage (link), downloadUrl, sourceUrl, order }`. Read with `DocFields` into `AppEntry` by hand (no `toObject`, so no ProGuard rule).
-- **What each role sees:** GUEST, and a signed-in user while the collection is empty or unreadable, see the built-in list from `mock_data.json` (`apps`, the same two apps as the website's `js/data/apps.js`). ADMIN with the built-in list sees a "Save apps" card that writes it to Firestore in order; after that the admin can add (FAB), and long-press a card to edit, move earlier or later, or delete. READER and GUEST are read-only.
-- **Links:** the website stores paths like `./apps/Faithfully.apk`. `AppLinks.resolve` turns them into `https://alliyannah.love/...` and refuses anything that is not http or https (unit-tested in `AppLinksTest`). The icon image loads over the emoji, so the emoji shows if the link is empty or fails.
-- **Writes:** `AddAppActivity` (admin only) writes the same fields as the website's editor, with blank fields stored as empty strings. Firestore rule: read for approved accounts, write for the admin.
-
 ## Adding photos
 
 `AddPhotoActivity` (admin only) mirrors the website's photo dialog: pick up to 20 photos at once (`PickMultipleVisualMedia`), a caption for each, then they are compressed, uploaded and saved one after another with a status per photo (`PendingPhotoAdapter`). A photo that fails keeps its place and can be retried without redoing the others; each photo rolls back its own R2 files if its Firestore write fails (see "R2 photo storage"). The next `order` is read once, then incremented per saved photo. Captions and removal are locked while uploading.
@@ -144,7 +133,7 @@ Mirrors the website's Apps section (`js/apps.js`, `js/apps-admin.js`, `js/data/a
 ## Known gaps
 
 - A few dialogs/sheets use `findViewById` (`GalleryActivity`, `CardsActivity`).
-- Voice playback and recording, and every admin-only screen (multi-photo upload, the Apps editor), have only been compile-, unit-test- and R8-checked, not run signed in. `minSdk` was raised from 24 to 30, which also removed the old `NewApi` lint errors from `HomeActivity.areAnimatorsEnabled()` (API 26).
+- Voice playback and recording, and every admin-only screen (multi-photo upload), have only been compile-, unit-test- and R8-checked, not run signed in. `minSdk` was raised from 24 to 30, which also removed the old `NewApi` lint errors from `HomeActivity.areAnimatorsEnabled()` (API 26).
 
 ## Firestore ProGuard warnings
 
@@ -154,7 +143,7 @@ Model classes (`Chapter`, `Card`, `Photo`) MUST be preserved by ProGuard because
 
 - File: `app/src/main/assets/mock_data.json`
 - Loader: `MockDataLoader` (lazy, cached in memory after first read)
-- Structure: `{ "home": {...}, "chapters": [...], "cards": [...], "gallery": [...], "voicePlayers": {...}, "voice": [...], "apps": [...] }`. It matches the website's `MOCK_CHAPTERS` / `MOCK_CARDS` / `MOCK_GALLERY` / `MOCK_VOICE` in `js/data/mock.js` (Faithfully-Web). Keep the chapter/card/voice text in sync with that file.
+- Structure: `{ "home": {...}, "chapters": [...], "cards": [...], "gallery": [...], "voicePlayers": {...}, "voice": [...] }`. It matches the website's `MOCK_CHAPTERS` / `MOCK_CARDS` / `MOCK_GALLERY` / `MOCK_VOICE` in `js/data/mock.js` (Faithfully-Web). Keep the chapter/card/voice text in sync with that file.
 - GUEST on `MainActivity`, `CardsActivity` and `GalleryActivity` loads from the loader and never touches Firestore or the SQLite chapter cache (`showMock()` in each). The getters return copies sorted by `order`.
 - `AuthHelper.signOutEverything` clears the `ChapterDbHelper` cache so a later guest never sees a previous session's chapters.
 - READER and GUEST get a `NoticeAdapter.forRole(ctx, role)` banner on those three screens (text in `strings.xml`: `notice_reader`, `notice_guest`). The Gallery grid gives it a full-width span.

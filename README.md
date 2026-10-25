@@ -41,10 +41,6 @@ I picked Java and XML views over Kotlin and Compose on purpose. It's the stack I
 - 📝 Optional captions, editable from the long-press menu
 - ☁️ Photos live on Cloudflare R2, the same place the website serves them from
 
-### 📱 Apps
-- 🌻 A showcase of the small Android apps I built for her, with Download and Source buttons, the same list as the website
-- ✍️ Admin can add, edit, move, and delete apps right from the phone
-
 ### 🎙️ Voice
 - 🎤 Record a short voice message (up to 90 seconds), preview it, add a caption, and send
 - 🐝🌻 Each message shows who sent it, and either of us can record
@@ -74,9 +70,9 @@ All shown in guest mode, with sample content.
 |:---:|:---:|:---:|:---:|
 | ![Login](metadata/en-US/images/screenshots/login.jpg) | ![Home](metadata/en-US/images/screenshots/home.jpg) | ![Letters](metadata/en-US/images/screenshots/letters.jpg) | ![Reader](metadata/en-US/images/screenshots/reader.jpg) |
 
-| Gallery | Voice | Apps | Dark mode |
-|:---:|:---:|:---:|:---:|
-| ![Gallery](metadata/en-US/images/screenshots/gallery.jpg) | ![Voice](metadata/en-US/images/screenshots/voice.jpg) | ![Apps](metadata/en-US/images/screenshots/apps.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
+| Gallery | Voice | Dark mode |
+|:---:|:---:|:---:|
+| ![Gallery](metadata/en-US/images/screenshots/gallery.jpg) | ![Voice](metadata/en-US/images/screenshots/voice.jpg) | ![Dark mode](metadata/en-US/images/screenshots/dark-mode.jpg) |
 
 ---
 

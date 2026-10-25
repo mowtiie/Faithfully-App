@@ -5,7 +5,6 @@ import android.content.Context;
 import android.util.Log;
 
 import com.google.firebase.Timestamp;
-import com.mowtiie.faithfully.data.AppEntry;
 import com.mowtiie.faithfully.data.Card;
 import com.mowtiie.faithfully.data.Chapter;
 import com.mowtiie.faithfully.data.Photo;
@@ -37,7 +36,6 @@ public class MockDataLoader {
     private static List<Card> cachedCards;
     private static List<Photo> cachedPhotos;
     private static List<VoiceClip> cachedVoice;
-    private static List<AppEntry> cachedApps;
     private static Map<String, String> cachedVoicePlayers;
     private static HomeContentResolver.Text cachedHome = HomeContentResolver.Text.fallback();
     private static boolean loaded = false;
@@ -79,14 +77,6 @@ public class MockDataLoader {
         return new ArrayList<>(cachedVoice);
     }
 
-    /** The built-in apps list, also shown to signed-in users while the apps collection is empty. */
-    public static List<AppEntry> getApps(Context ctx) {
-        ensureLoaded(ctx);
-        List<AppEntry> copy = new ArrayList<>(cachedApps);
-        Collections.sort(copy, (a, b) -> Long.compare(a.getOrder(), b.getOrder()));
-        return copy;
-    }
-
     public static Map<String, String> getVoicePlayers(Context ctx) {
         ensureLoaded(ctx);
         return new HashMap<>(cachedVoicePlayers);
@@ -99,7 +89,6 @@ public class MockDataLoader {
         cachedCards    = new ArrayList<>();
         cachedPhotos   = new ArrayList<>();
         cachedVoice    = new ArrayList<>();
-        cachedApps     = new ArrayList<>();
         cachedVoicePlayers = new HashMap<>();
 
         try {
@@ -177,25 +166,6 @@ public class MockDataLoader {
                             o.optDouble("duration", 0),
                             o.optString("uid", null),
                             null
-                    ));
-                }
-            }
-
-            JSONArray aArr = root.optJSONArray("apps");
-            if (aArr != null) {
-                for (int i = 0; i < aArr.length(); i++) {
-                    JSONObject o = aArr.getJSONObject(i);
-                    cachedApps.add(new AppEntry(
-                            o.getString("id"),
-                            o.optString("name", ""),
-                            o.optString("tagline", ""),
-                            o.optString("description", ""),
-                            o.optString("version", ""),
-                            o.optString("icon", ""),
-                            o.optString("iconImage", ""),
-                            o.optString("downloadUrl", ""),
-                            o.optString("sourceUrl", ""),
-                            o.optLong("order", i)
                     ));
                 }
             }

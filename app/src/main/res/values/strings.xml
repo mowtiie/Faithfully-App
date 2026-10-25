@@ -28,40 +28,6 @@
     <string name="home_voice">Voice</string>
     <string name="home_voice_desc">Listen to our little voice messages</string>
 
-    <!-- APPS -->
-    <string name="home_apps">Apps</string>
-    <string name="home_apps_desc">Little things I built for you</string>
-    <string name="apps_title">Apps</string>
-    <string name="apps_empty">No apps yet.</string>
-    <string name="apps_builtin_note">These are the built-in apps. Save them to edit them here.</string>
-    <string name="apps_builtin_save">Save apps</string>
-    <string name="apps_saved">Apps saved</string>
-    <string name="apps_download">Download</string>
-    <string name="apps_source">Source</string>
-    <string name="apps_actions">App Actions</string>
-    <string name="apps_add">Add an app</string>
-    <string name="apps_edit">Edit app</string>
-    <string name="apps_move_up">Move earlier</string>
-    <string name="apps_move_down">Move later</string>
-    <string name="apps_delete">Delete app</string>
-    <string name="apps_delete_title">Delete app</string>
-    <string name="apps_delete_message">\"%1$s\" will be removed. The APK file itself is not touched.</string>
-    <string name="apps_deleted">App deleted</string>
-    <string name="apps_link_failed">Nothing on this phone can open that link.</string>
-    <string name="app_form_new">New app</string>
-    <string name="app_form_edit">Edit app</string>
-    <string name="app_form_name">Name</string>
-    <string name="app_form_version">Version (for example v1.0)</string>
-    <string name="app_form_tagline">Tagline</string>
-    <string name="app_form_description">Description</string>
-    <string name="app_form_icon">Icon emoji</string>
-    <string name="app_form_icon_image">Icon image link</string>
-    <string name="app_form_download">Download link (the APK)</string>
-    <string name="app_form_source">Source link</string>
-    <string name="app_form_save">Save</string>
-    <string name="app_form_name_required">A name is required.</string>
-    <string name="app_form_saved">App saved</string>
-
     <!-- ADD PHOTOS -->
     <string name="photos_title">New Photos</string>
     <string name="photos_choose">Choose photos</string>
